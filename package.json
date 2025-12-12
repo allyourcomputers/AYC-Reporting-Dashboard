@@ -1,0 +1,27 @@
+{
+  "name": "halo-reporting",
+  "version": "1.0.0",
+  "description": "HaloPSA Reporting Dashboard - View ticket statistics and monthly usage reports",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server-supabase.js",
+    "dev": "node server-supabase.js",
+    "start:old": "node server.js",
+    "sync": "node sync-service.js"
+  },
+  "keywords": [
+    "halopsa",
+    "reporting",
+    "tickets",
+    "statistics"
+  ],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.87.1",
+    "axios": "^1.13.2",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1"
+  }
+}
