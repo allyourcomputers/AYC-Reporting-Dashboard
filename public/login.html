@@ -176,8 +176,15 @@
         // Initialize Supabase client
         async function initSupabase() {
             try {
+                console.log('Fetching config from /api/config...');
                 const response = await fetch('/api/config');
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
                 const config = await response.json();
+                console.log('Config loaded successfully');
 
                 supabaseClient = supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
 
@@ -185,7 +192,7 @@
                 checkAuth();
             } catch (error) {
                 console.error('Failed to initialize Supabase:', error);
-                errorMessage.textContent = 'Failed to connect to authentication service.';
+                errorMessage.textContent = `Failed to connect to authentication service: ${error.message}`;
                 errorMessage.classList.add('show');
             }
         }
