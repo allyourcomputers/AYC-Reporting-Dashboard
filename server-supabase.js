@@ -1,5 +1,6 @@
 require('dotenv').config();
 const express = require('express');
+const path = require('path');
 const { createClient } = require('@supabase/supabase-js');
 const { performFullSync } = require('./sync-service');
 
@@ -7,7 +8,6 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
-app.use(express.static('public'));
 
 // Supabase Configuration
 const SUPABASE_URL = process.env.SUPABASE_URL;
@@ -20,8 +20,50 @@ if (!SUPABASE_URL || !SUPABASE_KEY) {
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
+// Middleware to verify authentication
+async function requireAuth(req, res, next) {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Unauthorized - No token provided' });
+  }
+
+  const token = authHeader.substring(7);
+
+  try {
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+
+    if (error || !user) {
+      return res.status(401).json({ error: 'Unauthorized - Invalid token' });
+    }
+
+    req.user = user;
+    next();
+  } catch (error) {
+    console.error('Auth error:', error);
+    return res.status(401).json({ error: 'Unauthorized - Auth verification failed' });
+  }
+}
+
+// Serve Supabase config to frontend (public endpoint)
+app.get('/api/config', (req, res) => {
+  res.json({
+    supabaseUrl: SUPABASE_URL,
+    supabaseAnonKey: SUPABASE_KEY
+  });
+});
+
+// Serve login page
+app.get('/login', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'login.html'));
+});
+
+// Serve all static files (authentication is handled client-side)
+// API routes are protected with the requireAuth middleware
+app.use(express.static('public'));
+
 // Get all active clients (clients with tickets in the last 12 months)
-app.get('/api/clients', async (req, res) => {
+app.get('/api/clients', requireAuth, async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('active_clients')
@@ -41,7 +83,7 @@ app.get('/api/clients', async (req, res) => {
 });
 
 // Get ticket statistics for a client
-app.get('/api/tickets/stats', async (req, res) => {
+app.get('/api/tickets/stats', requireAuth, async (req, res) => {
   try {
     const { clientId, startDate, endDate } = req.query;
 
@@ -83,7 +125,7 @@ app.get('/api/tickets/stats', async (req, res) => {
 });
 
 // Get monthly statistics for multiple months
-app.post('/api/tickets/monthly-stats', async (req, res) => {
+app.post('/api/tickets/monthly-stats', requireAuth, async (req, res) => {
   try {
     const { clientId, months } = req.body;
 
@@ -129,7 +171,7 @@ app.post('/api/tickets/monthly-stats', async (req, res) => {
 });
 
 // Trigger a data sync
-app.post('/api/sync', async (req, res) => {
+app.post('/api/sync', requireAuth, async (req, res) => {
   try {
     const monthsBack = req.body.monthsBack || 12;
 
@@ -155,7 +197,7 @@ app.post('/api/sync', async (req, res) => {
 });
 
 // Get sync status
-app.get('/api/sync/status', async (req, res) => {
+app.get('/api/sync/status', requireAuth, async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('sync_metadata')
@@ -176,7 +218,7 @@ app.get('/api/sync/status', async (req, res) => {
 });
 
 // Get dashboard statistics
-app.get('/api/dashboard/stats', async (req, res) => {
+app.get('/api/dashboard/stats', requireAuth, async (req, res) => {
   try {
     // Get current date and various time periods
     const now = new Date();

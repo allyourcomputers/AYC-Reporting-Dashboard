@@ -7,6 +7,8 @@
     <link rel="stylesheet" href="/css/shared.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/js/auth.js"></script>
     <style>
         .report-container {
             padding: 30px;
@@ -217,6 +219,14 @@
                 Reports
             </a>
         </nav>
+        <div class="user-account-section">
+            <div class="user-email">Signed in as</div>
+            <div id="userInfo" class="user-email-value">Loading...</div>
+            <button id="logoutBtn" class="logout-btn">
+                <span class="logout-icon">🚪</span>
+                <span>Logout</span>
+            </button>
+        </div>
     </div>
 
     <div class="main-content">
@@ -272,7 +282,8 @@
         // Load clients on page load
         async function loadClients() {
             try {
-                const response = await fetch('/api/clients');
+                const response = await authFetch('/api/clients');
+                if (!response) return; // Auth failed, redirected to login
                 if (!response.ok) throw new Error('Failed to load clients');
 
                 clients = await response.json();
@@ -375,17 +386,15 @@
             try {
                 const months = getMonthsBetween(startMonth, endMonth);
 
-                const response = await fetch('/api/tickets/monthly-stats', {
+                const response = await authFetch('/api/tickets/monthly-stats', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
                     body: JSON.stringify({
                         clientId: parseInt(clientId),
                         months: months
                     })
                 });
 
+                if (!response) return; // Auth failed, redirected to login
                 if (!response.ok) throw new Error('Failed to fetch statistics');
 
                 const stats = await response.json();
@@ -587,14 +596,29 @@
             doc.save(fileName);
         }
 
-        // Set default date range (current month)
-        window.addEventListener('DOMContentLoaded', () => {
+        // Initialize page
+        async function initPage() {
+            // Initialize authentication first
+            const authenticated = await initAuth();
+            if (!authenticated) return;
+
+            // Setup logout button and user info
+            setupLogoutButton();
+            displayUserInfo();
+
+            // Set default date range (current month)
             const now = new Date();
             const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
             document.getElementById('startMonth').value = currentMonth;
             document.getElementById('endMonth').value = currentMonth;
 
+            // Load clients
             loadClients();
+        }
+
+        // Load page when DOM is ready
+        window.addEventListener('DOMContentLoaded', () => {
+            initPage();
         });
     </script>
 </body>

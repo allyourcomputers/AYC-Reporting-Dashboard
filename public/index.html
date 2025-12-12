@@ -6,6 +6,8 @@
     <title>Dashboard - HaloPSA</title>
     <link rel="stylesheet" href="/css/shared.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/js/auth.js"></script>
     <style>
         .metric-grid {
             display: grid;
@@ -195,6 +197,14 @@
                 Reports
             </a>
         </nav>
+        <div class="user-account-section">
+            <div class="user-email">Signed in as</div>
+            <div id="userInfo" class="user-email-value">Loading...</div>
+            <button id="logoutBtn" class="logout-btn">
+                <span class="logout-icon">🚪</span>
+                <span>Logout</span>
+            </button>
+        </div>
     </div>
 
     <div class="main-content">
@@ -332,7 +342,8 @@
         // Load dashboard data
         async function loadDashboardData() {
             try {
-                const response = await fetch('/api/dashboard/stats');
+                const response = await authFetch('/api/dashboard/stats');
+                if (!response) return; // Auth failed, redirected to login
                 if (!response.ok) throw new Error('Failed to load dashboard data');
 
                 dashboardData = await response.json();
@@ -532,9 +543,23 @@
             }
         });
 
-        // Load data when page loads
-        window.addEventListener('DOMContentLoaded', () => {
+        // Initialize page
+        async function initPage() {
+            // Initialize authentication first
+            const authenticated = await initAuth();
+            if (!authenticated) return;
+
+            // Setup logout button and user info
+            setupLogoutButton();
+            displayUserInfo();
+
+            // Load dashboard data
             loadDashboardData();
+        }
+
+        // Load page when DOM is ready
+        window.addEventListener('DOMContentLoaded', () => {
+            initPage();
         });
     </script>
 </body>
