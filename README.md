@@ -4,6 +4,7 @@ A web-based reporting dashboard for HaloPSA that displays ticket statistics and 
 
 ## Features
 
+- **Supabase Authentication** - Secure login/logout with JWT tokens
 - **Active Client Filtering** - Only shows clients with tickets in the last 12 months
 - View ticket statistics for selected time periods
 - Generate monthly reports showing:
@@ -14,8 +15,32 @@ A web-based reporting dashboard for HaloPSA that displays ticket statistics and 
 - Select custom date ranges (month by month)
 - **Fast Performance** - Data cached in Supabase for instant queries
 - Beautiful, responsive UI
+- **CSV & PDF Export** - Download reports for offline analysis
 
-## Setup
+## Deployment Options
+
+### Option 1: Docker (Recommended)
+
+**Quick Start:**
+```bash
+# Configure environment
+cp .env.example .env
+nano .env
+
+# Build and run
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+```
+
+See [DOCKER_DEPLOYMENT.md](DOCKER_DEPLOYMENT.md) for complete Docker deployment guide.
+
+### Option 2: Production with PM2
+
+See [PRODUCTION_SETUP.md](PRODUCTION_SETUP.md) for PM2 deployment guide.
+
+### Option 3: Development Setup
 
 1. Install dependencies:
 ```bash
@@ -54,6 +79,19 @@ npm start
 ```
 http://localhost:3000
 ```
+
+You will be redirected to the login page.
+
+## Authentication Setup
+
+The application requires authentication to access. To set up users:
+
+1. Go to your Supabase dashboard: https://app.supabase.com
+2. Navigate to **Authentication** > **Users**
+3. Click **Add User** and create user accounts
+4. Users can then log in with their email and password
+
+See [AUTH_SETUP.md](AUTH_SETUP.md) for detailed authentication setup guide.
 
 ## Data Synchronization
 
@@ -125,11 +163,26 @@ Check the status of recent sync operations.
 
 ## Files
 
+### Application Files
 - `server-supabase.js` - Main server (queries Supabase)
 - `server.js` - Legacy server (queries HaloPSA directly)
 - `sync-service.js` - Data sync utility
 - `setup-database.sql` - Database schema
-- `SUPABASE_SETUP.md` - Detailed Supabase setup guide
+- `public/` - Frontend HTML/CSS/JS files
+- `public/js/auth.js` - Authentication utilities
+
+### Docker Files
+- `Dockerfile` - Docker container configuration
+- `docker-compose.yml` - Docker Compose orchestration
+- `.dockerignore` - Files excluded from Docker build
+
+### Documentation
+- `README.md` - This file
+- `SUPABASE_SETUP.md` - Supabase setup guide
+- `AUTH_SETUP.md` - Authentication setup guide
+- `DOCKER_DEPLOYMENT.md` - Docker deployment guide
+- `PRODUCTION_SETUP.md` - PM2 production deployment guide
+- `DEPLOYMENT_TROUBLESHOOTING.md` - Troubleshooting common issues
 
 ## License
 
