@@ -15,3 +15,13 @@ CREATE TABLE IF NOT EXISTS feedback (
 CREATE INDEX IF NOT EXISTS idx_feedback_ticket_id ON feedback(ticket_id);
 CREATE INDEX IF NOT EXISTS idx_feedback_date ON feedback(date);
 CREATE INDEX IF NOT EXISTS idx_feedback_score ON feedback(score);
+
+-- Enable Row Level Security
+ALTER TABLE feedback ENABLE ROW LEVEL SECURITY;
+
+-- Create policies for feedback table
+CREATE POLICY "Allow public read access to feedback" ON feedback
+  FOR SELECT USING (true);
+
+CREATE POLICY "Allow service role full access to feedback" ON feedback
+  FOR ALL USING (auth.role() = 'service_role');

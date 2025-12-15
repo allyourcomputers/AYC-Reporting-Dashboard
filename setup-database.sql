@@ -80,9 +80,12 @@ GROUP BY c.id, c.name, c.toplevel_id, c.toplevel_name, c.inactive, c.colour, c.l
 ORDER BY c.name;
 
 -- Function to update client last ticket dates
+-- Set explicit search_path to prevent security warnings
 CREATE OR REPLACE FUNCTION update_client_last_ticket_dates()
 RETURNS void
 LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
 AS $$
   UPDATE clients c
   SET last_ticket_date = (
@@ -91,6 +94,10 @@ AS $$
     WHERE t.client_id = c.id
   );
 $$;
+
+-- Grant execute permissions
+GRANT EXECUTE ON FUNCTION update_client_last_ticket_dates() TO authenticated;
+GRANT EXECUTE ON FUNCTION update_client_last_ticket_dates() TO service_role;
 
 -- Enable Row Level Security (optional but recommended)
 ALTER TABLE clients ENABLE ROW LEVEL SECURITY;
