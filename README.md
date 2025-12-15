@@ -38,7 +38,12 @@ docker-compose logs -f
 - ✅ Automatic daily data sync at 2am UTC (via cron)
 - ✅ Health monitoring and auto-restart
 - ✅ Isolated environment
-- ✅ Easy updates and deployment
+- ✅ One-command deployment with `./deploy.sh`
+
+**Quick Update:**
+```bash
+./deploy.sh  # Pull latest code, rebuild, and restart
+```
 
 See [DOCKER_DEPLOYMENT.md](DOCKER_DEPLOYMENT.md) for complete Docker deployment guide.
 

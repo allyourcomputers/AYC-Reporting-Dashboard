@@ -343,6 +343,37 @@ networks:
 
 ## Updating the Application
 
+### Option 1: Automated Deployment Script (Recommended)
+
+Use the provided deployment script for one-command updates:
+
+```bash
+# Full deployment (clean rebuild, no cache)
+./deploy.sh
+
+# Quick deployment (uses cache, faster)
+./quick-deploy.sh
+```
+
+**deploy.sh features:**
+- ✅ Checks for local changes
+- ✅ Stops container gracefully
+- ✅ Pulls latest code from GitHub
+- ✅ Rebuilds image from scratch (no cache)
+- ✅ Starts container
+- ✅ Verifies deployment
+- ✅ Shows logs and status
+- ✅ Error handling and rollback
+
+**quick-deploy.sh features:**
+- ✅ Faster deployment (uses Docker cache)
+- ✅ Same workflow, minimal output
+- ✅ Good for routine updates
+
+### Option 2: Manual Update
+
+If you prefer to run commands manually:
+
 ```bash
 # Pull latest code
 git pull origin main
@@ -352,7 +383,7 @@ docker-compose down
 docker-compose build --no-cache
 docker-compose up -d
 
-# Or in one command
+# Or in one command (uses cache)
 docker-compose up -d --build
 ```
 
