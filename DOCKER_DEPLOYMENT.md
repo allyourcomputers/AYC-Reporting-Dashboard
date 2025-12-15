@@ -21,7 +21,8 @@ nano .env
 
 **Important for Docker deployment:**
 - Set `SUPABASE_URL` to your publicly accessible Supabase URL (e.g., `http://yourdomain.com:8000`)
-- Set `PORT=3000` (this is internal to the container)
+- Set `PORT=3100` (this is internal to the container)
+- **Note:** Port 3100 is used to avoid conflicts with Supabase, which typically runs on port 3000
 
 ### 2. Build and Run with Docker Compose
 
@@ -36,7 +37,7 @@ docker-compose logs -f
 docker-compose down
 ```
 
-The application will be available at `http://localhost:3000`
+The application will be available at `http://localhost:3100`
 
 ### 3. Deploy on Custom Port
 
@@ -51,7 +52,7 @@ docker-compose up -d
 Or edit `docker-compose.yml`:
 ```yaml
 ports:
-  - "80:3000"
+  - "80:3100"
 ```
 
 ## Manual Docker Build
@@ -69,7 +70,7 @@ docker build -t halo-reporting:latest .
 ```bash
 docker run -d \
   --name halo-reporting \
-  -p 3000:3000 \
+  -p 3000:3100 \
   --env-file .env \
   --restart unless-stopped \
   halo-reporting:latest
@@ -80,7 +81,7 @@ docker run -d \
 ```bash
 docker run -d \
   --name halo-reporting \
-  -p 80:3000 \
+  -p 80:3100 \
   --env-file .env \
   --restart unless-stopped \
   halo-reporting:latest
@@ -174,7 +175,7 @@ HALO_CLIENT_ID=your-production-client-id
 HALO_CLIENT_SECRET=your-production-client-secret
 SUPABASE_URL=http://allyoursoftware.co.uk:8000
 SUPABASE_KEY=your-production-anon-key
-PORT=3000
+PORT=3100
 ```
 
 3. **Deploy:**
@@ -186,7 +187,7 @@ docker-compose up -d
 ```bash
 docker-compose ps
 docker-compose logs -f
-curl http://localhost:3000/api/config
+curl http://localhost:3100/api/config
 ```
 
 ### Behind Nginx Reverse Proxy
@@ -198,7 +199,7 @@ If using Nginx as a reverse proxy:
 services:
   halo-reporting:
     ports:
-      - "127.0.0.1:3000:3000"  # Only bind to localhost
+      - "127.0.0.1:3100:3100"  # Only bind to localhost
 ```
 
 **Nginx configuration:**
@@ -208,7 +209,7 @@ server {
     server_name yourdomain.com;
 
     location / {
-        proxy_pass http://localhost:3000;
+        proxy_pass http://localhost:3100;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
@@ -266,7 +267,7 @@ services:
   halo-reporting:
     build: .
     ports:
-      - "80:3000"
+      - "80:3100"
     environment:
       - SUPABASE_URL=http://supabase:8000
     networks:
@@ -317,7 +318,7 @@ Common issues:
 
 ```bash
 # Find what's using the port
-sudo netstat -tlnp | grep :3000
+sudo netstat -tlnp | grep :3100
 
 # Stop the conflicting service or change the port
 ```
@@ -345,7 +346,7 @@ docker inspect --format='{{.State.Health.Status}}' halo-reporting
 3. Test from inside container:
 ```bash
 docker exec -it halo-reporting sh
-wget -O- http://localhost:3000/api/config
+wget -O- http://localhost:3100/api/config
 ```
 
 4. Check firewall:

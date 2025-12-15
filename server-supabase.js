@@ -5,7 +5,7 @@ const { createClient } = require('@supabase/supabase-js');
 const { performFullSync } = require('./sync-service');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3100;
 
 app.use(express.json());
 

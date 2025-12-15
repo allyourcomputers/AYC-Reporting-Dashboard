@@ -24,11 +24,11 @@ RUN chown -R nodejs:nodejs /app
 USER nodejs
 
 # Expose port (can be overridden with PORT env variable)
-EXPOSE 3000
+EXPOSE 3100
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3000/api/config', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+  CMD node -e "require('http').get('http://localhost:3100/api/config', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
 
 # Start the application
 CMD ["node", "server-supabase.js"]

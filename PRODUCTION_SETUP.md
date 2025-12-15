@@ -176,7 +176,7 @@ sudo setcap 'cap_net_bind_service=+ep' $(which node)
 ```
 
 ### Option 3: Use a Higher Port with Reverse Proxy (Best Practice)
-Keep your app on port 3000 and use Nginx or Apache as a reverse proxy on port 80.
+Keep your app on port 3100 and use Nginx or Apache as a reverse proxy on port 80.
 
 ## Checking Current Process
 
@@ -188,8 +188,8 @@ ps aux | grep node
 # Check what's listening on port 80
 sudo netstat -tlnp | grep :80
 
-# Check what's listening on port 3000
-sudo netstat -tlnp | grep :3000
+# Check what's listening on port 3100
+sudo netstat -tlnp | grep :3100
 
 # Kill a stuck process if needed
 sudo kill -9 PID_NUMBER

@@ -36,7 +36,7 @@ PORT=80
 
 If it's set to 3000 or another port, you need to either:
 - **Option A:** Change it to `PORT=80` and restart the server
-- **Option B:** Access your site with the port number: `http://yourserver.com:3000`
+- **Option B:** Access your site with the port number: `http://yourserver.com:3100`
 
 ### 3. Check Server Logs
 
@@ -101,7 +101,7 @@ sudo systemctl restart your-app-name
 ## Common Solutions
 
 ### Solution 1: Wrong Port
-Your server is running on port 3000, but you're accessing it on port 80.
+Your server is running on port 3100, but you're accessing it on port 80.
 
 **Fix:** Update your production `.env`:
 ```bash
@@ -115,7 +115,7 @@ Port 80 requires root/sudo privileges.
 **Fix:** Either:
 - Run with sudo/root (not recommended)
 - Use a reverse proxy (Nginx/Apache) - recommended
-- Use port 3000 and access via `http://yourserver.com:3000`
+- Use port 3100 and access via `http://yourserver.com:3100`
 
 ### Solution 3: Server Not Running
 The Node.js process crashed or wasn't started.

@@ -46,7 +46,7 @@ cat .env.backup
 
 **Important:** Make sure your `.env` has:
 - `SUPABASE_URL=http://allyoursoftware.co.uk:8000` (your public domain, NOT 127.0.0.1)
-- `PORT=3000` (Docker will handle port mapping)
+- `PORT=3100` (Docker will handle port mapping)
 
 ### Step 3: Pull Latest Code
 
@@ -150,9 +150,9 @@ Now we'll start the app with Docker. Choose your deployment method:
 nano docker-compose.yml
 
 # Change this line:
-#   - "${PORT:-3000}:3000"
+#   - "${PORT:-3000}:3100"
 # To:
-#   - "80:3000"
+#   - "80:3100"
 
 # Save and exit (Ctrl+X, Y, Enter)
 
@@ -166,7 +166,7 @@ docker-compose logs -f
 #### Option B: Run on Port 3000
 
 ```bash
-# Start the container (uses port 3000 by default)
+# Start the container (uses port 3100 by default)
 docker-compose up -d
 
 # View logs
@@ -175,7 +175,7 @@ docker-compose logs -f
 
 **Expected output:**
 ```
-halo-reporting | HaloPSA Reporting Server (Supabase) running on http://localhost:3000
+halo-reporting | HaloPSA Reporting Server (Supabase) running on http://localhost:3100
 ```
 
 Press `Ctrl+C` to exit logs (container keeps running).
@@ -192,8 +192,8 @@ docker-compose ps
 
 # Test the endpoint
 curl http://localhost/api/config
-# or if on port 3000:
-curl http://localhost:3000/api/config
+# or if on port 3100:
+curl http://localhost:3100/api/config
 
 # Check health status
 docker inspect --format='{{.State.Health.Status}}' halo-reporting
@@ -354,8 +354,8 @@ sudo docker-compose up -d
 # Option 2: Add user to docker group (then log out/in)
 sudo usermod -aG docker $USER
 
-# Option 3: Use port 3000 instead
-# Edit docker-compose.yml to use port 3000
+# Option 3: Use port 3100 instead
+# Edit docker-compose.yml to use port 3100
 ```
 
 ### Container Keeps Restarting

@@ -56,7 +56,8 @@ HALO_CLIENT_SECRET=your-client-secret
 SUPABASE_URL=http://your-supabase-url:8000
 SUPABASE_KEY=your-supabase-anon-key
 
-PORT=3000
+# Port 3100 avoids conflicts with Supabase which uses port 3000
+PORT=3100
 ```
 
 3. Set up the Supabase database:
@@ -77,7 +78,7 @@ npm start
 
 6. Open your browser and navigate to:
 ```
-http://localhost:3000
+http://localhost:3100
 ```
 
 You will be redirected to the login page.
@@ -102,7 +103,7 @@ npm run sync
 
 Or trigger a sync via the API:
 ```bash
-curl -X POST http://localhost:3000/api/sync
+curl -X POST http://localhost:3100/api/sync
 ```
 
 For automated syncing, set up a cron job (see `SUPABASE_SETUP.md`).
