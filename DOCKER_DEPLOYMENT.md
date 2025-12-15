@@ -39,6 +39,62 @@ docker-compose down
 
 The application will be available at `http://localhost:3100`
 
+## Automated Data Synchronization
+
+The Docker container includes a **cron job** that automatically syncs data from HaloPSA to Supabase **every day at 2am UTC**.
+
+### Sync Features
+
+- **Automatic daily sync** - No manual intervention required
+- **Logs** - All sync operations are logged to `/var/log/sync.log`
+- **Configurable** - You can customize the sync schedule by modifying the `crontab` file
+
+### Viewing Sync Logs
+
+```bash
+# View sync logs in real-time
+docker exec -it halo-reporting tail -f /var/log/sync.log
+
+# View last 100 lines of sync logs
+docker exec -it halo-reporting tail -100 /var/log/sync.log
+
+# View all sync logs
+docker exec -it halo-reporting cat /var/log/sync.log
+```
+
+### Manual Sync
+
+You can also trigger a sync manually:
+
+```bash
+# Run sync inside the container
+docker exec -it halo-reporting node sync-service.js
+
+# Or trigger via API (requires authentication)
+curl -X POST http://localhost:3100/api/sync \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+### Customizing Sync Schedule
+
+To change when the sync runs, edit the `crontab` file before building:
+
+```bash
+# Edit crontab
+nano crontab
+
+# Examples:
+# Run every 6 hours: 0 */6 * * * /app/sync-cron.sh
+# Run at 3am daily: 0 3 * * * /app/sync-cron.sh
+# Run twice daily (2am & 2pm): 0 2,14 * * * /app/sync-cron.sh
+```
+
+Then rebuild the container:
+```bash
+docker-compose build
+docker-compose up -d
+```
+
 ### 3. Deploy on Custom Port
 
 To run on port 80:

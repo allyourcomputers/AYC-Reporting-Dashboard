@@ -1,0 +1,4 @@
+# Run HaloPSA sync every day at 2am
+0 2 * * * /app/sync-cron.sh
+
+# Empty line required at end of crontab file

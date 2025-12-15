@@ -34,6 +34,12 @@ docker-compose up -d
 docker-compose logs -f
 ```
 
+**Features:**
+- ✅ Automatic daily data sync at 2am UTC (via cron)
+- ✅ Health monitoring and auto-restart
+- ✅ Isolated environment
+- ✅ Easy updates and deployment
+
 See [DOCKER_DEPLOYMENT.md](DOCKER_DEPLOYMENT.md) for complete Docker deployment guide.
 
 ### Option 2: Production with PM2
