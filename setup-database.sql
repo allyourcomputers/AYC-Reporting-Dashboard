@@ -60,7 +60,10 @@ CREATE TABLE IF NOT EXISTS sync_metadata (
 );
 
 -- Create a view for active clients (tickets in last 12 months)
-CREATE OR REPLACE VIEW active_clients AS
+-- Use SECURITY INVOKER to run with querying user's permissions (safer)
+CREATE OR REPLACE VIEW active_clients
+WITH (security_invoker = true)
+AS
 SELECT DISTINCT
   c.id,
   c.name,
