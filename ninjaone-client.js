@@ -312,9 +312,9 @@ async function getServerDetails(deviceId) {
   try {
     const [device, osData, osPatchData, softwarePatchData, dashboardUrl, organizations] = await Promise.all([
       ninjaRequest(`/v2/device/${deviceId}`),
-      ninjaRequest('/v2/queries/operating-systems', { df: `deviceId = ${deviceId}` }).catch(() => ({ results: [] })),
-      ninjaRequest('/v2/queries/os-patches', { df: `deviceId = ${deviceId}` }).catch(() => ({ results: [] })),
-      ninjaRequest('/v2/queries/software-patches', { df: `deviceId = ${deviceId}` }).catch(() => ({ results: [] })),
+      ninjaRequest('/v2/queries/operating-systems').catch(() => ({ results: [] })),
+      ninjaRequest('/v2/queries/os-patches').catch(() => ({ results: [] })),
+      ninjaRequest('/v2/queries/software-patches').catch(() => ({ results: [] })),
       ninjaRequest(`/v2/device/${deviceId}/dashboard-url`).catch(() => ({ url: null })),
       ninjaRequest('/v2/organizations').catch(() => [])
     ]);
@@ -324,17 +324,46 @@ async function getServerDetails(deviceId) {
     const osPatchResults = Array.isArray(osPatchData) ? osPatchData : (osPatchData?.results || []);
     const softwarePatchResults = Array.isArray(softwarePatchData) ? softwarePatchData : (softwarePatchData?.results || []);
 
-    const os = osResults.length > 0 ? osResults[0] : null;
-    const osPatches = osPatchResults;
-    const softwarePatches = softwarePatchResults;
+    // Filter for this specific device
+    const os = osResults.find(o => o.deviceId === parseInt(deviceId));
+    const osPatches = osPatchResults.filter(p => p.deviceId === parseInt(deviceId));
+    const softwarePatches = softwarePatchResults.filter(p => p.deviceId === parseInt(deviceId));
 
     const osPending = osPatches.filter(p => p.status !== 'INSTALLED');
     const softwarePending = softwarePatches.filter(p => p.status !== 'INSTALLED');
 
+    // Log patch data for debugging
+    logger.info(`Patch data for device ${deviceId}:`, {
+      totalOsPatches: osPatches.length,
+      totalSoftwarePatches: softwarePatches.length,
+      osPendingCount: osPending.length,
+      softwarePendingCount: softwarePending.length,
+      sampleOsPatch: osPatches[0] ? Object.keys(osPatches[0]) : [],
+      sampleSoftwarePatch: softwarePatches[0] ? Object.keys(softwarePatches[0]) : []
+    });
+
+    // Log device fields for debugging
+    logger.info(`Device ${deviceId} fields:`, {
+      hasLastRebootTime: !!device.lastRebootTime,
+      hasLastBootTime: !!device.lastBootTime,
+      hasBootTime: !!device.bootTime,
+      hasUptime: !!device.uptime,
+      lastRebootTime: device.lastRebootTime,
+      systemFields: device.system ? Object.keys(device.system) : []
+    });
+
     let uptime = null;
     if (device.lastRebootTime) {
-      const rebootTime = new Date(device.lastRebootTime);
+      // Check if it's a Unix timestamp or ISO string
+      const rebootTime = typeof device.lastRebootTime === 'number'
+        ? new Date(device.lastRebootTime * 1000)
+        : new Date(device.lastRebootTime);
       uptime = (Date.now() - rebootTime.getTime()) / (1000 * 60 * 60 * 24);
+    } else if (device.lastBootTime) {
+      const bootTime = typeof device.lastBootTime === 'number'
+        ? new Date(device.lastBootTime * 1000)
+        : new Date(device.lastBootTime);
+      uptime = (Date.now() - bootTime.getTime()) / (1000 * 60 * 60 * 24);
     }
 
     // Convert Unix timestamp to ISO string
