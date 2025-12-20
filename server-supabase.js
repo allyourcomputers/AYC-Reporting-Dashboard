@@ -13,25 +13,34 @@ app.use(express.json());
 
 // Supabase Configuration
 const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_KEY = process.env.SUPABASE_KEY;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
 
 // Debug: Log environment variable status (without revealing values)
 console.log('Environment check:');
 console.log('- SUPABASE_URL:', SUPABASE_URL ? `Set (${SUPABASE_URL.substring(0, 20)}...)` : 'NOT SET');
-console.log('- SUPABASE_KEY:', SUPABASE_KEY ? `Set (${SUPABASE_KEY.substring(0, 20)}...)` : 'NOT SET');
+console.log('- SUPABASE_SERVICE_ROLE_KEY:', SUPABASE_SERVICE_ROLE_KEY ? `Set (${SUPABASE_SERVICE_ROLE_KEY.substring(0, 20)}...)` : 'NOT SET');
+console.log('- SUPABASE_ANON_KEY:', SUPABASE_ANON_KEY ? `Set (${SUPABASE_ANON_KEY.substring(0, 20)}...)` : 'NOT SET');
 console.log('- HALO_API_URL:', process.env.HALO_API_URL ? 'Set' : 'NOT SET');
 console.log('- HALO_CLIENT_ID:', process.env.HALO_CLIENT_ID ? 'Set' : 'NOT SET');
 console.log('- HALO_CLIENT_SECRET:', process.env.HALO_CLIENT_SECRET ? 'Set' : 'NOT SET');
 console.log('- NODE_ENV:', process.env.NODE_ENV || 'development');
 
-if (!SUPABASE_URL || !SUPABASE_KEY) {
-  console.error('ERROR: SUPABASE_URL and SUPABASE_KEY must be set');
+if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY || !SUPABASE_ANON_KEY) {
+  console.error('ERROR: Supabase configuration incomplete');
+  console.error('Required: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_ANON_KEY');
   console.error('In development: Add them to .env file');
   console.error('In Docker: Ensure .env file exists in the same directory as docker-compose.yml');
+  console.error('');
+  console.error('Find your keys in Supabase Dashboard > Settings > API:');
+  console.error('  - service_role key (secret) - for backend sync operations');
+  console.error('  - anon key (public) - for frontend authentication');
   process.exit(1);
 }
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+// Create Supabase client with service role key for backend operations
+// This bypasses RLS and allows the sync service to write data
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
 // Middleware to verify authentication
 async function requireAuth(req, res, next) {
@@ -59,10 +68,11 @@ async function requireAuth(req, res, next) {
 }
 
 // Serve Supabase config to frontend (public endpoint)
+// IMPORTANT: This sends the ANON key to the frontend, not the service role key
 app.get('/api/config', (req, res) => {
   res.json({
     supabaseUrl: SUPABASE_URL,
-    supabaseAnonKey: SUPABASE_KEY
+    supabaseAnonKey: SUPABASE_ANON_KEY
   });
 });
 

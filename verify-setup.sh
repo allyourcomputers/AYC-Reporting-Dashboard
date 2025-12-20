@@ -42,7 +42,8 @@ if [ -f ".env" ]; then
         check_var "HALO_CLIENT_ID"
         check_var "HALO_CLIENT_SECRET"
         check_var "SUPABASE_URL"
-        check_var "SUPABASE_KEY"
+        check_var "SUPABASE_SERVICE_ROLE_KEY"
+        check_var "SUPABASE_ANON_KEY"
 
     else
         echo -e "${RED}✗${NC} .env file is empty"

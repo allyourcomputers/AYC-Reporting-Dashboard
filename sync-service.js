@@ -11,8 +11,9 @@ const HALO_CLIENT_ID = process.env.HALO_CLIENT_ID;
 const HALO_CLIENT_SECRET = process.env.HALO_CLIENT_SECRET;
 
 // Supabase Configuration
+// Use service_role key to bypass RLS for sync operations
 const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_KEY = process.env.SUPABASE_KEY;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 // Debug: Log environment variable status (without revealing values)
 console.log('Sync Service - Environment check:');
@@ -20,12 +21,15 @@ console.log('- HALO_API_URL:', HALO_API_URL || 'NOT SET');
 console.log('- HALO_CLIENT_ID:', HALO_CLIENT_ID ? 'Set' : 'NOT SET');
 console.log('- HALO_CLIENT_SECRET:', HALO_CLIENT_SECRET ? 'Set' : 'NOT SET');
 console.log('- SUPABASE_URL:', SUPABASE_URL ? `Set (${SUPABASE_URL.substring(0, 20)}...)` : 'NOT SET');
-console.log('- SUPABASE_KEY:', SUPABASE_KEY ? `Set (${SUPABASE_KEY.substring(0, 20)}...)` : 'NOT SET');
+console.log('- SUPABASE_SERVICE_ROLE_KEY:', SUPABASE_SERVICE_ROLE_KEY ? `Set (${SUPABASE_SERVICE_ROLE_KEY.substring(0, 20)}...)` : 'NOT SET');
 
-if (!SUPABASE_URL || !SUPABASE_KEY) {
-  console.error('ERROR: SUPABASE_URL and SUPABASE_KEY must be set');
+if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+  console.error('ERROR: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set');
   console.error('In development: Add them to .env file');
   console.error('In Docker: Ensure .env file exists in the same directory as docker-compose.yml');
+  console.error('');
+  console.error('Find your service_role key in Supabase Dashboard > Settings > API');
+  console.error('This key is required for the sync service to bypass RLS and write data');
   process.exit(1);
 }
 
@@ -35,7 +39,8 @@ if (!HALO_API_URL || !HALO_CLIENT_ID || !HALO_CLIENT_SECRET) {
   process.exit(1);
 }
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+// Create Supabase client with service_role key to bypass RLS
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
 let accessToken = null;
 let tokenExpiry = null;
