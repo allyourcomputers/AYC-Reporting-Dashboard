@@ -3,7 +3,7 @@ const axios = require('axios');
 const fs = require('fs');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_KEY = process.env.SUPABASE_KEY;
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 async function addFeedbackTable() {
   console.log('Adding feedback table to Supabase...\n');
