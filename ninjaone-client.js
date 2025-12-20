@@ -118,9 +118,14 @@ async function getServers() {
   logger.info('Fetching fresh server data from NinjaOne');
 
   try {
-    // Fetch all devices first (we'll filter client-side for now)
-    // TODO: Update filter once we determine correct syntax
-    const allDevices = await ninjaRequest('/v2/devices');
+    // Fetch devices and organizations in parallel
+    const [allDevices, organizations] = await Promise.all([
+      ninjaRequest('/v2/devices'),
+      ninjaRequest('/v2/organizations').catch(err => {
+        logger.error('Failed to fetch organizations', { error: err.message });
+        return [];
+      })
+    ]);
 
     logger.info(`Found ${allDevices.length} total devices`);
 
@@ -136,6 +141,14 @@ async function getServers() {
     });
 
     logger.info(`Found ${devices.length} servers after filtering`);
+
+    // Create organization lookup map
+    const orgMap = new Map();
+    if (Array.isArray(organizations)) {
+      organizations.forEach(org => {
+        orgMap.set(org.id, org.name);
+      });
+    }
 
     if (!devices || devices.length === 0) {
       const emptyResult = {
@@ -226,15 +239,26 @@ async function getServers() {
         lastContactISO = new Date(timestamp).toISOString();
       }
 
+      // Determine OS type for icon
+      const osName = (os?.name || device.nodeClass || '').toLowerCase();
+      let osType = 'unknown';
+      if (osName.includes('windows')) {
+        osType = 'windows';
+      } else if (osName.includes('linux') || osName.includes('ubuntu') || osName.includes('centos') || osName.includes('debian')) {
+        osType = 'linux';
+      }
+
       return {
         id: device.id,
         name: device.systemName || device.dnsName || 'Unknown',
+        clientName: orgMap.get(device.organizationId) || 'Unknown Client',
         status: device.offline === false ? 'ONLINE' : 'OFFLINE',
         lastContact: lastContactISO,
         uptime: uptime ? uptime.toFixed(1) : null,
         os: {
           name: os?.name || device.nodeClass || 'Unknown',
-          version: os?.version || ''
+          version: os?.version || '',
+          type: osType
         },
         patches: {
           osPending,
