@@ -435,3 +435,60 @@ body {
         grid-template-columns: 1fr;
     }
 }
+
+/* Server status badges */
+.status-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-online {
+    background: #d4edda;
+    color: #155724;
+}
+
+.status-offline {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+/* Patch count pills */
+.patch-pill {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.patch-none {
+    background: #d4edda;
+    color: #155724;
+}
+
+.patch-warning {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.patch-critical {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+/* Auto-refresh indicator */
+.refresh-indicator {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: white;
+    padding: 10px 15px;
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    font-size: 12px;
+    color: #666;
+}

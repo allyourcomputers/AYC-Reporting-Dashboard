@@ -6,6 +6,7 @@ const path = require('path');
 const { createClient } = require('@supabase/supabase-js');
 const { performFullSync } = require('./sync-service');
 const logger = require('./logger');
+const ninjaOneClient = require('./ninjaone-client');
 
 const app = express();
 const PORT = process.env.PORT || 3100;
@@ -478,6 +479,28 @@ app.get('/api/dashboard/stats', requireAuth, async (req, res) => {
   } catch (error) {
     console.error('Error fetching dashboard stats:', error);
     res.status(500).json({ error: 'Failed to fetch dashboard statistics' });
+  }
+});
+
+// Get all servers with monitoring data
+app.get('/api/servers', requireAuth, async (req, res) => {
+  try {
+    const serversData = await ninjaOneClient.getServers();
+    res.json(serversData);
+  } catch (error) {
+    logger.error('Error fetching servers:', error);
+    res.status(500).json({ error: 'Failed to fetch server data' });
+  }
+});
+
+// Get specific server details
+app.get('/api/servers/:deviceId', requireAuth, async (req, res) => {
+  try {
+    const serverData = await ninjaOneClient.getServerDetails(req.params.deviceId);
+    res.json(serverData);
+  } catch (error) {
+    logger.error('Error fetching server details:', error);
+    res.status(500).json({ error: 'Failed to fetch server details' });
   }
 });
 
