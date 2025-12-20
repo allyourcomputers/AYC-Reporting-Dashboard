@@ -404,7 +404,7 @@
                 const patchClass = totalPatches > 0 ? 'has-patches' : 'no-patches';
 
                 return `
-                    <div class="server-box ${statusClass}">
+                    <a href="/server-details.html?id=${server.id}" class="server-box ${statusClass}" style="text-decoration: none; color: inherit;">
                         <div class="server-icon">${icon}</div>
                         <div class="server-name">${server.name}</div>
                         <div class="client-name">${server.clientName}</div>
@@ -414,7 +414,7 @@
                         <div class="patch-info">
                             Patches: <span class="patch-count ${patchClass}">${totalPatches}</span>
                         </div>
-                    </div>
+                    </a>
                 `;
             }).join('');
         }

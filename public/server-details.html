@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Server Details - HaloPSA</title>
+    <link rel="stylesheet" href="/css/shared.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/js/auth.js"></script>
+    <style>
+        .back-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            background: white;
+            color: #333;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            transition: all 0.2s;
+        }
+
+        .back-button:hover {
+            background: #f5f6fa;
+            border-color: #bbb;
+        }
+
+        .server-header {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .server-header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+        }
+
+        .server-title {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .server-title-icon {
+            font-size: 64px;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+        }
+
+        .server-title-text h1 {
+            margin: 0 0 8px 0;
+            font-size: 28px;
+            color: #333;
+        }
+
+        .server-title-text .client {
+            font-size: 16px;
+            color: #666;
+        }
+
+        .ninjaone-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            background: var(--brand-gradient);
+            color: white;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: opacity 0.2s;
+        }
+
+        .ninjaone-link:hover {
+            opacity: 0.9;
+        }
+
+        .server-status-bar {
+            display: flex;
+            gap: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #f0f0f0;
+        }
+
+        .status-item {
+            flex: 1;
+        }
+
+        .status-item-label {
+            font-size: 12px;
+            color: #999;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .status-item-value {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .details-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .detail-card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .detail-card h3 {
+            margin: 0 0 20px 0;
+            font-size: 16px;
+            color: #333;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #f5f5f5;
+        }
+
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+
+        .detail-label {
+            font-size: 13px;
+            color: #666;
+            font-weight: 600;
+        }
+
+        .detail-value {
+            font-size: 13px;
+            color: #333;
+            text-align: right;
+        }
+
+        .patches-list {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .patches-list h3 {
+            margin: 0 0 20px 0;
+            font-size: 16px;
+            color: #333;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .patches-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .patches-table thead {
+            background: #f5f6fa;
+        }
+
+        .patches-table th {
+            padding: 12px 15px;
+            text-align: left;
+            font-size: 11px;
+            font-weight: 600;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .patches-table td {
+            padding: 12px 15px;
+            font-size: 13px;
+            color: #333;
+            border-top: 1px solid #f0f0f0;
+        }
+
+        .patches-table tbody tr:hover {
+            background: #f9f9f9;
+        }
+
+        .patch-severity {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .severity-critical { background: #f8d7da; color: #721c24; }
+        .severity-important { background: #fff3cd; color: #856404; }
+        .severity-moderate { background: #d1ecf1; color: #0c5460; }
+        .severity-low { background: #d4edda; color: #155724; }
+
+        .loading-state, .error-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .error-state {
+            color: #dc3545;
+            background: #fff5f5;
+        }
+
+        .state-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+
+        .empty-patches {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+            font-size: 14px;
+        }
+
+        @media (max-width: 768px) {
+            .details-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .server-header-top {
+                flex-direction: column;
+                gap: 20px;
+            }
+
+            .server-status-bar {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="logo">
+            <img src="/images/logo.png" alt="All Your Computers">
+        </div>
+        <nav class="nav-menu">
+            <div class="nav-section">MAIN MENU</div>
+            <a href="/" class="nav-item">
+                <span class="nav-icon">📊</span>
+                Dashboard
+            </a>
+            <a href="/reports.html" class="nav-item">
+                <span class="nav-icon">📈</span>
+                Reports
+            </a>
+            <a href="/servers.html" class="nav-item active">
+                <span class="nav-icon">🖥️</span>
+                Servers
+            </a>
+        </nav>
+        <div class="user-account-section">
+            <div class="user-email">Signed in as</div>
+            <div id="userInfo" class="user-email-value">Loading...</div>
+            <button id="logoutBtn" class="logout-btn">
+                <span class="logout-icon">🚪</span>
+                <span>Logout</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="dashboard-content">
+            <a href="/servers.html" class="back-button">
+                ← Back to Servers
+            </a>
+
+            <div id="serverContent">
+                <div class="loading-state">
+                    <div class="state-icon">
+                        <div class="spinner"></div>
+                    </div>
+                    <div>Loading server details...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Get server ID from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const serverId = urlParams.get('id');
+
+        // Get OS icon based on type
+        function getOSIcon(osType) {
+            switch(osType) {
+                case 'windows':
+                    return '🪟';
+                case 'linux':
+                    return '🐧';
+                default:
+                    return '🖥️';
+            }
+        }
+
+        // Format date/time for display
+        function formatDateTime(isoString) {
+            if (!isoString) return 'N/A';
+            const date = new Date(isoString);
+            return date.toLocaleString();
+        }
+
+        // Format uptime in days
+        function formatUptime(days) {
+            if (!days) return 'N/A';
+            const d = parseFloat(days);
+            if (d < 1) {
+                const hours = Math.floor(d * 24);
+                return `${hours} hours`;
+            }
+            return `${Math.floor(d)} days`;
+        }
+
+        // Get severity class
+        function getSeverityClass(severity) {
+            if (!severity) return 'severity-low';
+            const s = severity.toLowerCase();
+            if (s.includes('critical')) return 'severity-critical';
+            if (s.includes('important')) return 'severity-important';
+            if (s.includes('moderate')) return 'severity-moderate';
+            return 'severity-low';
+        }
+
+        // Render server details
+        function renderServerDetails(server) {
+            const icon = getOSIcon(server.os.type);
+            const statusClass = server.status === 'ONLINE' ? 'status-online' : 'status-offline';
+            const statusText = server.status === 'ONLINE' ? '✓ Online' : '✗ Offline';
+
+            const ninjaLinkHtml = server.ninjaoneUrl ?
+                `<a href="${server.ninjaoneUrl}" target="_blank" class="ninjaone-link">
+                    🚀 Open in NinjaOne
+                </a>` : '';
+
+            const content = `
+                <div class="server-header">
+                    <div class="server-header-top">
+                        <div class="server-title">
+                            <div class="server-title-icon">${icon}</div>
+                            <div class="server-title-text">
+                                <h1>${server.name}</h1>
+                                <div class="client">${server.clientName}</div>
+                            </div>
+                        </div>
+                        ${ninjaLinkHtml}
+                    </div>
+                    <div class="server-status-bar">
+                        <div class="status-item">
+                            <div class="status-item-label">Status</div>
+                            <div class="status-item-value">
+                                <span class="status-badge ${statusClass}">${statusText}</span>
+                            </div>
+                        </div>
+                        <div class="status-item">
+                            <div class="status-item-label">Uptime</div>
+                            <div class="status-item-value">${formatUptime(server.uptime)}</div>
+                        </div>
+                        <div class="status-item">
+                            <div class="status-item-label">Last Contact</div>
+                            <div class="status-item-value">${formatDateTime(server.lastContact)}</div>
+                        </div>
+                        <div class="status-item">
+                            <div class="status-item-label">OS Patches</div>
+                            <div class="status-item-value">
+                                <span class="patch-pill ${server.patches.osPending > 0 ? 'patch-warning' : 'patch-none'}">
+                                    ${server.patches.osPending}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="status-item">
+                            <div class="status-item-label">Software Patches</div>
+                            <div class="status-item-value">
+                                <span class="patch-pill ${server.patches.softwarePending > 0 ? 'patch-warning' : 'patch-none'}">
+                                    ${server.patches.softwarePending}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="details-grid">
+                    <div class="detail-card">
+                        <h3>Operating System</h3>
+                        <div class="detail-row">
+                            <div class="detail-label">OS Name</div>
+                            <div class="detail-value">${server.os.name}</div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-label">Version</div>
+                            <div class="detail-value">${server.os.version || 'N/A'}</div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-label">Type</div>
+                            <div class="detail-value">${server.os.type}</div>
+                        </div>
+                    </div>
+
+                    <div class="detail-card">
+                        <h3>Hardware Information</h3>
+                        <div class="detail-row">
+                            <div class="detail-label">Manufacturer</div>
+                            <div class="detail-value">${server.details?.manufacturer || 'N/A'}</div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-label">Model</div>
+                            <div class="detail-value">${server.details?.model || 'N/A'}</div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-label">Serial Number</div>
+                            <div class="detail-value">${server.details?.serialNumber || 'N/A'}</div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-label">BIOS Version</div>
+                            <div class="detail-value">${server.details?.biosVersion || 'N/A'}</div>
+                        </div>
+                    </div>
+                </div>
+
+                ${renderPatchesList('OS Patches', server.patches.osPendingList)}
+                ${renderPatchesList('Software Patches', server.patches.softwarePendingList)}
+            `;
+
+            document.getElementById('serverContent').innerHTML = content;
+        }
+
+        // Render patches list
+        function renderPatchesList(title, patches) {
+            if (!patches || patches.length === 0) {
+                return `
+                    <div class="patches-list">
+                        <h3>${title}</h3>
+                        <div class="empty-patches">
+                            ✓ No pending ${title.toLowerCase()}
+                        </div>
+                    </div>
+                `;
+            }
+
+            const rows = patches.map(patch => `
+                <tr>
+                    <td><strong>${patch.patchName || patch.name || 'Unknown'}</strong></td>
+                    <td>${patch.kb || patch.id || 'N/A'}</td>
+                    <td>
+                        <span class="patch-severity ${getSeverityClass(patch.severity)}">
+                            ${patch.severity || 'Unknown'}
+                        </span>
+                    </td>
+                    <td>${formatDateTime(patch.installedDate || patch.releaseDate)}</td>
+                </tr>
+            `).join('');
+
+            return `
+                <div class="patches-list">
+                    <h3>${title} (${patches.length})</h3>
+                    <table class="patches-table">
+                        <thead>
+                            <tr>
+                                <th>PATCH NAME</th>
+                                <th>KB/ID</th>
+                                <th>SEVERITY</th>
+                                <th>DATE</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rows}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+
+        // Load server details
+        async function loadServerDetails() {
+            if (!serverId) {
+                document.getElementById('serverContent').innerHTML = `
+                    <div class="error-state">
+                        <div class="state-icon">⚠️</div>
+                        <div>No server ID provided</div>
+                        <div style="margin-top: 15px;">
+                            <a href="/servers.html" class="back-button">← Back to Servers</a>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            try {
+                const response = await authFetch(`/api/servers/${serverId}`);
+                if (!response) return; // Auth failed, redirected to login
+                if (!response.ok) throw new Error('Failed to load server details');
+
+                const server = await response.json();
+                renderServerDetails(server);
+
+            } catch (error) {
+                console.error('Error loading server details:', error);
+                document.getElementById('serverContent').innerHTML = `
+                    <div class="error-state">
+                        <div class="state-icon">⚠️</div>
+                        <div>Failed to load server details</div>
+                        <div style="margin-top: 10px; font-size: 13px;">${error.message}</div>
+                        <div style="margin-top: 15px;">
+                            <button onclick="loadServerDetails()" class="refresh-btn">Retry</button>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // Initialize page
+        async function initPage() {
+            // Initialize authentication first
+            const authenticated = await initAuth();
+            if (!authenticated) return;
+
+            // Setup logout button and user info
+            setupLogoutButton();
+            displayUserInfo();
+
+            // Load server details
+            await loadServerDetails();
+        }
+
+        // Load page when DOM is ready
+        window.addEventListener('DOMContentLoaded', () => {
+            initPage();
+        });
+    </script>
+</body>
+</html>

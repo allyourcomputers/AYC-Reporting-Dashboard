@@ -310,11 +310,13 @@ async function getServerDetails(deviceId) {
   logger.info(`Fetching details for server ${deviceId}`);
 
   try {
-    const [device, osData, osPatchData, softwarePatchData] = await Promise.all([
+    const [device, osData, osPatchData, softwarePatchData, dashboardUrl, organizations] = await Promise.all([
       ninjaRequest(`/v2/device/${deviceId}`),
       ninjaRequest('/v2/queries/operating-systems', { df: `deviceId = ${deviceId}` }).catch(() => ({ results: [] })),
       ninjaRequest('/v2/queries/os-patches', { df: `deviceId = ${deviceId}` }).catch(() => ({ results: [] })),
-      ninjaRequest('/v2/queries/software-patches', { df: `deviceId = ${deviceId}` }).catch(() => ({ results: [] }))
+      ninjaRequest('/v2/queries/software-patches', { df: `deviceId = ${deviceId}` }).catch(() => ({ results: [] })),
+      ninjaRequest(`/v2/device/${deviceId}/dashboard-url`).catch(() => ({ url: null })),
+      ninjaRequest('/v2/organizations').catch(() => [])
     ]);
 
     // Extract results
@@ -342,15 +344,34 @@ async function getServerDetails(deviceId) {
       lastContactISO = new Date(timestamp).toISOString();
     }
 
+    // Get organization name
+    const orgMap = new Map();
+    if (Array.isArray(organizations)) {
+      organizations.forEach(org => {
+        orgMap.set(org.id, org.name);
+      });
+    }
+
+    // Determine OS type for icon
+    const osName = (os?.name || device.nodeClass || '').toLowerCase();
+    let osType = 'unknown';
+    if (osName.includes('windows')) {
+      osType = 'windows';
+    } else if (osName.includes('linux') || osName.includes('ubuntu') || osName.includes('centos') || osName.includes('debian')) {
+      osType = 'linux';
+    }
+
     return {
       id: device.id,
       name: device.systemName || device.dnsName || 'Unknown',
+      clientName: orgMap.get(device.organizationId) || 'Unknown Client',
       status: device.offline === false ? 'ONLINE' : 'OFFLINE',
       lastContact: lastContactISO,
       uptime: uptime ? uptime.toFixed(1) : null,
       os: {
         name: os?.name || device.nodeClass || 'Unknown',
-        version: os?.version || ''
+        version: os?.version || '',
+        type: osType
       },
       patches: {
         osPending: osPending.length,
@@ -364,7 +385,8 @@ async function getServerDetails(deviceId) {
         model: device.system?.model,
         serialNumber: device.system?.serialNumber,
         biosVersion: device.system?.biosVersion
-      }
+      },
+      ninjaoneUrl: dashboardUrl?.url || null
     };
   } catch (error) {
     logger.error(`Failed to fetch server details for ${deviceId}`, { error: error.message });
