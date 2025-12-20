@@ -118,13 +118,24 @@ async function getServers() {
   logger.info('Fetching fresh server data from NinjaOne');
 
   try {
-    // Fetch devices filtered by server roles
-    // Note: The exact filter syntax may need adjustment based on NinjaOne API
-    const devices = await ninjaRequest('/v2/devices', {
-      df: "nodeRolePolicyName = 'Windows Server' OR nodeRolePolicyName = 'Linux Server'"
+    // Fetch all devices first (we'll filter client-side for now)
+    // TODO: Update filter once we determine correct syntax
+    const allDevices = await ninjaRequest('/v2/devices');
+
+    logger.info(`Found ${allDevices.length} total devices`);
+
+    // Filter for servers (Windows Server or Linux Server in node class/role)
+    const devices = allDevices.filter(device => {
+      const nodeClass = (device.nodeClass || '').toLowerCase();
+      const nodeRole = (device.nodeRolePolicyName || device.roleName || '').toLowerCase();
+
+      return nodeClass.includes('server') ||
+             nodeRole.includes('server') ||
+             nodeClass.includes('windows server') ||
+             nodeClass.includes('linux server');
     });
 
-    logger.info(`Found ${devices.length} servers`);
+    logger.info(`Found ${devices.length} servers after filtering`);
 
     if (!devices || devices.length === 0) {
       const emptyResult = {
@@ -152,26 +163,31 @@ async function getServers() {
     const [osData, osPatchData, softwarePatchData] = await Promise.all([
       ninjaRequest('/v2/queries/operating-systems').catch(err => {
         logger.error('Failed to fetch OS data', { error: err.message });
-        return [];
+        return { results: [] };
       }),
       ninjaRequest('/v2/queries/os-patches').catch(err => {
         logger.error('Failed to fetch OS patch data', { error: err.message });
-        return [];
+        return { results: [] };
       }),
       ninjaRequest('/v2/queries/software-patches').catch(err => {
         logger.error('Failed to fetch software patch data', { error: err.message });
-        return [];
+        return { results: [] };
       })
     ]);
 
+    // Extract results arrays (queries return {results: [...]} format)
+    const osResults = Array.isArray(osData) ? osData : (osData.results || []);
+    const osPatchResults = Array.isArray(osPatchData) ? osPatchData : (osPatchData.results || []);
+    const softwarePatchResults = Array.isArray(softwarePatchData) ? softwarePatchData : (softwarePatchData.results || []);
+
     // Create lookup maps
     const osMap = new Map();
-    osData.forEach(os => {
+    osResults.forEach(os => {
       osMap.set(os.deviceId, os);
     });
 
     const osPatchMap = new Map();
-    osPatchData.forEach(patch => {
+    osPatchResults.forEach(patch => {
       if (!osPatchMap.has(patch.deviceId)) {
         osPatchMap.set(patch.deviceId, []);
       }
@@ -179,7 +195,7 @@ async function getServers() {
     });
 
     const softwarePatchMap = new Map();
-    softwarePatchData.forEach(patch => {
+    softwarePatchResults.forEach(patch => {
       if (!softwarePatchMap.has(patch.deviceId)) {
         softwarePatchMap.set(patch.deviceId, []);
       }
@@ -265,14 +281,19 @@ async function getServerDetails(deviceId) {
   try {
     const [device, osData, osPatchData, softwarePatchData] = await Promise.all([
       ninjaRequest(`/v2/device/${deviceId}`),
-      ninjaRequest('/v2/queries/operating-systems', { df: `deviceId = ${deviceId}` }).catch(() => null),
-      ninjaRequest('/v2/queries/os-patches', { df: `deviceId = ${deviceId}` }).catch(() => []),
-      ninjaRequest('/v2/queries/software-patches', { df: `deviceId = ${deviceId}` }).catch(() => [])
+      ninjaRequest('/v2/queries/operating-systems', { df: `deviceId = ${deviceId}` }).catch(() => ({ results: [] })),
+      ninjaRequest('/v2/queries/os-patches', { df: `deviceId = ${deviceId}` }).catch(() => ({ results: [] })),
+      ninjaRequest('/v2/queries/software-patches', { df: `deviceId = ${deviceId}` }).catch(() => ({ results: [] }))
     ]);
 
-    const os = Array.isArray(osData) && osData.length > 0 ? osData[0] : null;
-    const osPatches = Array.isArray(osPatchData) ? osPatchData : [];
-    const softwarePatches = Array.isArray(softwarePatchData) ? softwarePatchData : [];
+    // Extract results
+    const osResults = Array.isArray(osData) ? osData : (osData?.results || []);
+    const osPatchResults = Array.isArray(osPatchData) ? osPatchData : (osPatchData?.results || []);
+    const softwarePatchResults = Array.isArray(softwarePatchData) ? softwarePatchData : (softwarePatchData?.results || []);
+
+    const os = osResults.length > 0 ? osResults[0] : null;
+    const osPatches = osPatchResults;
+    const softwarePatches = softwarePatchResults;
 
     const osPending = osPatches.filter(p => p.status !== 'INSTALLED');
     const softwarePending = softwarePatches.filter(p => p.status !== 'INSTALLED');
