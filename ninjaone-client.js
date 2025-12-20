@@ -173,9 +173,13 @@ async function getServers() {
     const deviceIds = devices.map(d => d.id);
 
     // Fetch additional data in parallel
-    const [osData, osPatchData, softwarePatchData] = await Promise.all([
+    const [osData, computerSystemsData, osPatchData, softwarePatchData] = await Promise.all([
       ninjaRequest('/v2/queries/operating-systems').catch(err => {
         logger.error('Failed to fetch OS data', { error: err.message });
+        return { results: [] };
+      }),
+      ninjaRequest('/v2/queries/computer-systems').catch(err => {
+        logger.error('Failed to fetch computer systems data', { error: err.message });
         return { results: [] };
       }),
       ninjaRequest('/v2/queries/os-patches').catch(err => {
@@ -190,6 +194,7 @@ async function getServers() {
 
     // Extract results arrays (queries return {results: [...]} format)
     const osResults = Array.isArray(osData) ? osData : (osData.results || []);
+    const computerSystemsResults = Array.isArray(computerSystemsData) ? computerSystemsData : (computerSystemsData.results || []);
     const osPatchResults = Array.isArray(osPatchData) ? osPatchData : (osPatchData.results || []);
     const softwarePatchResults = Array.isArray(softwarePatchData) ? softwarePatchData : (softwarePatchData.results || []);
 
@@ -197,6 +202,11 @@ async function getServers() {
     const osMap = new Map();
     osResults.forEach(os => {
       osMap.set(os.deviceId, os);
+    });
+
+    const computerSystemsMap = new Map();
+    computerSystemsResults.forEach(cs => {
+      computerSystemsMap.set(cs.deviceId, cs);
     });
 
     const osPatchMap = new Map();
@@ -218,6 +228,7 @@ async function getServers() {
     // Transform and enrich device data
     const servers = devices.map(device => {
       const os = osMap.get(device.id);
+      const computerSystem = computerSystemsMap.get(device.id);
       const osPatches = osPatchMap.get(device.id) || [];
       const softwarePatches = softwarePatchMap.get(device.id) || [];
 
@@ -225,10 +236,22 @@ async function getServers() {
       const osPending = osPatches.filter(p => p.status !== 'INSTALLED').length;
       const softwarePending = softwarePatches.filter(p => p.status !== 'INSTALLED').length;
 
-      // Calculate uptime in days
+      // Calculate uptime in days from computer system data
       let uptime = null;
-      if (device.lastRebootTime) {
-        const rebootTime = new Date(device.lastRebootTime);
+      if (computerSystem?.bootTime) {
+        const bootTime = typeof computerSystem.bootTime === 'number'
+          ? new Date(computerSystem.bootTime * 1000)
+          : new Date(computerSystem.bootTime);
+        uptime = (Date.now() - bootTime.getTime()) / (1000 * 60 * 60 * 24);
+      } else if (computerSystem?.lastBootTime) {
+        const bootTime = typeof computerSystem.lastBootTime === 'number'
+          ? new Date(computerSystem.lastBootTime * 1000)
+          : new Date(computerSystem.lastBootTime);
+        uptime = (Date.now() - bootTime.getTime()) / (1000 * 60 * 60 * 24);
+      } else if (device.lastRebootTime) {
+        const rebootTime = typeof device.lastRebootTime === 'number'
+          ? new Date(device.lastRebootTime * 1000)
+          : new Date(device.lastRebootTime);
         uptime = (Date.now() - rebootTime.getTime()) / (1000 * 60 * 60 * 24);
       }
 
@@ -310,9 +333,10 @@ async function getServerDetails(deviceId) {
   logger.info(`Fetching details for server ${deviceId}`);
 
   try {
-    const [device, osData, osPatchData, softwarePatchData, dashboardUrl, organizations] = await Promise.all([
+    const [device, osData, computerSystemsData, osPatchData, softwarePatchData, dashboardUrl, organizations] = await Promise.all([
       ninjaRequest(`/v2/device/${deviceId}`),
       ninjaRequest('/v2/queries/operating-systems').catch(() => ({ results: [] })),
+      ninjaRequest('/v2/queries/computer-systems').catch(() => ({ results: [] })),
       ninjaRequest('/v2/queries/os-patches').catch(() => ({ results: [] })),
       ninjaRequest('/v2/queries/software-patches').catch(() => ({ results: [] })),
       ninjaRequest(`/v2/device/${deviceId}/dashboard-url`).catch(() => ({ url: null })),
@@ -321,11 +345,13 @@ async function getServerDetails(deviceId) {
 
     // Extract results
     const osResults = Array.isArray(osData) ? osData : (osData?.results || []);
+    const computerSystemsResults = Array.isArray(computerSystemsData) ? computerSystemsData : (computerSystemsData?.results || []);
     const osPatchResults = Array.isArray(osPatchData) ? osPatchData : (osPatchData?.results || []);
     const softwarePatchResults = Array.isArray(softwarePatchData) ? softwarePatchData : (softwarePatchData?.results || []);
 
     // Filter for this specific device
     const os = osResults.find(o => o.deviceId === parseInt(deviceId));
+    const computerSystem = computerSystemsResults.find(c => c.deviceId === parseInt(deviceId));
     const osPatches = osPatchResults.filter(p => p.deviceId === parseInt(deviceId));
     const softwarePatches = softwarePatchResults.filter(p => p.deviceId === parseInt(deviceId));
 
@@ -342,28 +368,36 @@ async function getServerDetails(deviceId) {
       sampleSoftwarePatch: softwarePatches[0] ? Object.keys(softwarePatches[0]) : []
     });
 
-    // Log device fields for debugging
+    // Log device and computer system fields for debugging
     logger.info(`Device ${deviceId} fields:`, {
-      hasLastRebootTime: !!device.lastRebootTime,
-      hasLastBootTime: !!device.lastBootTime,
-      hasBootTime: !!device.bootTime,
-      hasUptime: !!device.uptime,
-      lastRebootTime: device.lastRebootTime,
-      systemFields: device.system ? Object.keys(device.system) : []
+      deviceFields: Object.keys(device),
+      computerSystemFields: computerSystem ? Object.keys(computerSystem) : [],
+      hasComputerSystem: !!computerSystem,
+      computerSystemBootTime: computerSystem?.bootTime,
+      computerSystemLastBootTime: computerSystem?.lastBootTime
     });
 
+    // Calculate uptime from computer system data
     let uptime = null;
-    if (device.lastRebootTime) {
-      // Check if it's a Unix timestamp or ISO string
+    if (computerSystem?.bootTime) {
+      // bootTime is likely a Unix timestamp
+      const bootTime = typeof computerSystem.bootTime === 'number'
+        ? new Date(computerSystem.bootTime * 1000)
+        : new Date(computerSystem.bootTime);
+      uptime = (Date.now() - bootTime.getTime()) / (1000 * 60 * 60 * 24);
+      logger.info(`Calculated uptime from bootTime: ${uptime} days`);
+    } else if (computerSystem?.lastBootTime) {
+      const bootTime = typeof computerSystem.lastBootTime === 'number'
+        ? new Date(computerSystem.lastBootTime * 1000)
+        : new Date(computerSystem.lastBootTime);
+      uptime = (Date.now() - bootTime.getTime()) / (1000 * 60 * 60 * 24);
+      logger.info(`Calculated uptime from lastBootTime: ${uptime} days`);
+    } else if (device.lastRebootTime) {
       const rebootTime = typeof device.lastRebootTime === 'number'
         ? new Date(device.lastRebootTime * 1000)
         : new Date(device.lastRebootTime);
       uptime = (Date.now() - rebootTime.getTime()) / (1000 * 60 * 60 * 24);
-    } else if (device.lastBootTime) {
-      const bootTime = typeof device.lastBootTime === 'number'
-        ? new Date(device.lastBootTime * 1000)
-        : new Date(device.lastBootTime);
-      uptime = (Date.now() - bootTime.getTime()) / (1000 * 60 * 60 * 24);
+      logger.info(`Calculated uptime from device.lastRebootTime: ${uptime} days`);
     }
 
     // Convert Unix timestamp to ISO string
