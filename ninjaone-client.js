@@ -219,11 +219,18 @@ async function getServers() {
         uptime = (Date.now() - rebootTime.getTime()) / (1000 * 60 * 60 * 24);
       }
 
+      // Convert Unix timestamp to ISO string
+      let lastContactISO = null;
+      if (device.lastContact) {
+        const timestamp = device.lastContact * 1000; // Convert to milliseconds
+        lastContactISO = new Date(timestamp).toISOString();
+      }
+
       return {
         id: device.id,
         name: device.systemName || device.dnsName || 'Unknown',
         status: device.offline === false ? 'ONLINE' : 'OFFLINE',
-        lastContact: device.lastContact || null,
+        lastContact: lastContactISO,
         uptime: uptime ? uptime.toFixed(1) : null,
         os: {
           name: os?.name || device.nodeClass || 'Unknown',
@@ -304,11 +311,18 @@ async function getServerDetails(deviceId) {
       uptime = (Date.now() - rebootTime.getTime()) / (1000 * 60 * 60 * 24);
     }
 
+    // Convert Unix timestamp to ISO string
+    let lastContactISO = null;
+    if (device.lastContact) {
+      const timestamp = device.lastContact * 1000; // Convert to milliseconds
+      lastContactISO = new Date(timestamp).toISOString();
+    }
+
     return {
       id: device.id,
       name: device.systemName || device.dnsName || 'Unknown',
       status: device.offline === false ? 'ONLINE' : 'OFFLINE',
-      lastContact: device.lastContact || null,
+      lastContact: lastContactISO,
       uptime: uptime ? uptime.toFixed(1) : null,
       os: {
         name: os?.name || device.nodeClass || 'Unknown',
