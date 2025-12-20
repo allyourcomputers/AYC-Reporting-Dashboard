@@ -373,8 +373,16 @@ async function getServerDetails(deviceId) {
       deviceFields: Object.keys(device),
       computerSystemFields: computerSystem ? Object.keys(computerSystem) : [],
       hasComputerSystem: !!computerSystem,
-      computerSystemBootTime: computerSystem?.bootTime,
-      computerSystemLastBootTime: computerSystem?.lastBootTime
+      osFields: os ? Object.keys(os) : [],
+      deviceSystemFields: device.system ? Object.keys(device.system) : [],
+      deviceOsFields: device.os ? Object.keys(device.os) : [],
+      // Check for any boot-related fields
+      deviceLastRebootTime: device.lastRebootTime,
+      osBootTime: os?.bootTime,
+      osLastBootTime: os?.lastBootTime,
+      osUptime: os?.uptime,
+      deviceSystemUptime: device.system?.uptime,
+      computerSystemTimestamp: computerSystem?.timestamp
     });
 
     // Calculate uptime from computer system data
