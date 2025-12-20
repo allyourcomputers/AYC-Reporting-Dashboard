@@ -47,9 +47,9 @@
 
         .servers-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            grid-template-columns: repeat(5, 1fr);
             gap: 20px;
-            margin-top: 20px;
+            margin-bottom: 30px;
         }
 
         .server-box {
@@ -169,15 +169,59 @@
             margin-bottom: 20px;
         }
 
+        .servers-table-container {
+            margin-top: 30px;
+        }
+
+        .servers-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 6px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .servers-table thead {
+            background: #f5f6fa;
+        }
+
+        .servers-table th {
+            padding: 12px 15px;
+            text-align: left;
+            font-size: 11px;
+            font-weight: 600;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .servers-table td {
+            padding: 12px 15px;
+            font-size: 13px;
+            color: #333;
+            border-top: 1px solid #f0f0f0;
+        }
+
+        .servers-table tbody tr:hover {
+            background: #f9f9f9;
+        }
+
+        @media (max-width: 1400px) {
+            .servers-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+
         @media (max-width: 1200px) {
             .servers-grid {
-                grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+                grid-template-columns: repeat(3, 1fr);
             }
         }
 
         @media (max-width: 768px) {
             .servers-grid {
-                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+                grid-template-columns: repeat(2, 1fr);
                 gap: 15px;
             }
 
@@ -195,6 +239,15 @@
 
             .client-name {
                 font-size: 12px;
+            }
+
+            .servers-table {
+                font-size: 12px;
+            }
+
+            .servers-table th,
+            .servers-table td {
+                padding: 8px 10px;
             }
         }
     </style>
@@ -252,6 +305,34 @@
                     <div>Loading server data...</div>
                 </div>
             </div>
+
+            <div class="card">
+                <h3>Server Details</h3>
+                <div class="servers-table-container">
+                    <table class="servers-table">
+                        <thead>
+                            <tr>
+                                <th>SERVER NAME</th>
+                                <th>CLIENT</th>
+                                <th>STATUS</th>
+                                <th>UPTIME</th>
+                                <th>OPERATING SYSTEM</th>
+                                <th style="text-align: center;">OS PATCHES</th>
+                                <th style="text-align: center;">SOFTWARE PATCHES</th>
+                                <th>LAST CONTACT</th>
+                            </tr>
+                        </thead>
+                        <tbody id="serversTableBody">
+                            <tr>
+                                <td colspan="8" class="loading-message">
+                                    <div class="spinner"></div>
+                                    Loading server data...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -271,6 +352,31 @@
                 default:
                     return '🖥️'; // Generic computer
             }
+        }
+
+        // Format date/time for display
+        function formatDateTime(isoString) {
+            if (!isoString) return 'N/A';
+            const date = new Date(isoString);
+            return date.toLocaleString();
+        }
+
+        // Format uptime in days
+        function formatUptime(days) {
+            if (!days) return 'N/A';
+            const d = parseFloat(days);
+            if (d < 1) {
+                const hours = Math.floor(d * 24);
+                return `${hours}h`;
+            }
+            return `${Math.floor(d)}d`;
+        }
+
+        // Get patch pill class based on count
+        function getPatchClass(count) {
+            if (count === 0) return 'patch-none';
+            if (count <= 5) return 'patch-warning';
+            return 'patch-critical';
         }
 
         // Update servers grid
@@ -313,6 +419,48 @@
             }).join('');
         }
 
+        // Update servers table
+        function updateServersTable(servers) {
+            const tbody = document.getElementById('serversTableBody');
+
+            if (!servers || servers.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="8" class="empty-state">
+                            <div class="empty-state-icon">🖥️</div>
+                            <div>No servers found</div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = servers.map(server => `
+                <tr>
+                    <td><strong>${server.name}</strong></td>
+                    <td>${server.clientName}</td>
+                    <td>
+                        <span class="status-badge ${server.status === 'ONLINE' ? 'status-online' : 'status-offline'}">
+                            ${server.status === 'ONLINE' ? '✓ Online' : '✗ Offline'}
+                        </span>
+                    </td>
+                    <td>${formatUptime(server.uptime)}</td>
+                    <td>${server.os.name}${server.os.version ? ' ' + server.os.version : ''}</td>
+                    <td style="text-align: center;">
+                        <span class="patch-pill ${getPatchClass(server.patches.osPending)}">
+                            ${server.patches.osPending}
+                        </span>
+                    </td>
+                    <td style="text-align: center;">
+                        <span class="patch-pill ${getPatchClass(server.patches.softwarePending)}">
+                            ${server.patches.softwarePending}
+                        </span>
+                    </td>
+                    <td>${formatDateTime(server.lastContact)}</td>
+                </tr>
+            `).join('');
+        }
+
         // Load servers data from API
         async function loadServersData() {
             const refreshBtn = document.getElementById('refreshBtn');
@@ -327,6 +475,7 @@
 
                 // Update UI
                 updateServersGrid(serversData.servers);
+                updateServersTable(serversData.servers);
 
                 // Update last updated time
                 const lastUpdated = new Date(serversData.lastUpdated);
