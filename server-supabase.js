@@ -5,9 +5,46 @@ const express = require('express');
 const path = require('path');
 const { createClient } = require('@supabase/supabase-js');
 const { performFullSync } = require('./sync-service');
+const logger = require('./logger');
 
 const app = express();
 const PORT = process.env.PORT || 3100;
+
+// Request logging middleware - log ALL incoming requests
+app.use((req, res, next) => {
+  const startTime = Date.now();
+
+  // Log request
+  logger.info('Incoming request', {
+    method: req.method,
+    url: req.url,
+    path: req.path,
+    query: req.query,
+    headers: {
+      host: req.headers.host,
+      origin: req.headers.origin,
+      referer: req.headers.referer,
+      userAgent: req.headers['user-agent']
+    },
+    ip: req.ip || req.connection.remoteAddress
+  });
+
+  // Capture response
+  const originalSend = res.send;
+  res.send = function(data) {
+    const duration = Date.now() - startTime;
+    logger.info('Response sent', {
+      method: req.method,
+      url: req.url,
+      statusCode: res.statusCode,
+      duration: `${duration}ms`,
+      contentLength: data?.length || 0
+    });
+    originalSend.call(this, data);
+  };
+
+  next();
+});
 
 app.use(express.json());
 
@@ -70,6 +107,24 @@ async function requireAuth(req, res, next) {
 // Serve Supabase config to frontend (public endpoint)
 // IMPORTANT: This sends the ANON key to the frontend, not the service role key
 app.get('/api/config', (req, res) => {
+  logger.info('/api/config endpoint called', {
+    supabaseUrlSet: !!SUPABASE_URL,
+    supabaseAnonKeySet: !!SUPABASE_ANON_KEY,
+    supabaseUrlPreview: SUPABASE_URL ? SUPABASE_URL.substring(0, 30) + '...' : 'NOT SET',
+    requestHeaders: {
+      host: req.headers.host,
+      origin: req.headers.origin
+    }
+  });
+
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    logger.error('/api/config missing required environment variables', {
+      SUPABASE_URL: !!SUPABASE_URL,
+      SUPABASE_ANON_KEY: !!SUPABASE_ANON_KEY
+    });
+    return res.status(500).json({ error: 'Server configuration error' });
+  }
+
   res.json({
     supabaseUrl: SUPABASE_URL,
     supabaseAnonKey: SUPABASE_ANON_KEY
@@ -426,7 +481,53 @@ app.get('/api/dashboard/stats', requireAuth, async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
+// Global error handler for uncaught errors
+app.use((err, req, res, next) => {
+  logger.error('Unhandled error in request', {
+    error: err.message,
+    stack: err.stack,
+    url: req.url,
+    method: req.method
+  });
+  res.status(500).json({ error: 'Internal server error' });
+});
+
+// Handle server startup
+const server = app.listen(PORT, () => {
+  logger.info('Server started successfully', {
+    port: PORT,
+    nodeEnv: process.env.NODE_ENV || 'development',
+    pid: process.pid,
+    logFile: logger.LOG_FILE
+  });
   console.log(`HaloPSA Reporting Server (Supabase) running on http://localhost:${PORT}`);
+  console.log(`Logs are being written to: ${logger.LOG_FILE}`);
   console.log(`Note: Run 'node sync-service.js' to sync data from HaloPSA to Supabase`);
+});
+
+// Handle server errors
+server.on('error', (error) => {
+  logger.error('Server error', {
+    error: error.message,
+    code: error.code,
+    stack: error.stack
+  });
+  process.exit(1);
+});
+
+// Handle process termination
+process.on('SIGTERM', () => {
+  logger.info('SIGTERM received, shutting down gracefully');
+  server.close(() => {
+    logger.info('Server closed');
+    process.exit(0);
+  });
+});
+
+process.on('SIGINT', () => {
+  logger.info('SIGINT received, shutting down gracefully');
+  server.close(() => {
+    logger.info('Server closed');
+    process.exit(0);
+  });
 });

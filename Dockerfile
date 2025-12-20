@@ -31,7 +31,8 @@ RUN chmod +x /app/sync-cron.sh /app/docker-entrypoint.sh
 # Create log directory and set permissions
 RUN mkdir -p /var/log && \
     touch /var/log/sync.log && \
-    chown -R nodejs:nodejs /var/log/sync.log
+    touch /var/log/app.log && \
+    chown -R nodejs:nodejs /var/log/sync.log /var/log/app.log
 
 # Change ownership of the app directory
 RUN chown -R nodejs:nodejs /app

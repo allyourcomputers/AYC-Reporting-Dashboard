@@ -6,9 +6,14 @@ set -e
 
 echo "Starting HaloPSA Reporting Dashboard..."
 
-# Ensure log file exists with correct permissions
+# Ensure log files exist with correct permissions
 touch /var/log/sync.log
+touch /var/log/app.log
 chmod 666 /var/log/sync.log
+chmod 666 /var/log/app.log
+echo "Log files ready:"
+echo "  - Sync logs: /var/log/sync.log"
+echo "  - App logs:  /var/log/app.log"
 
 # Start cron daemon in the background (runs as root for cron functionality)
 echo "Starting cron daemon..."
