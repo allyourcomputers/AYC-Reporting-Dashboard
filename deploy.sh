@@ -35,6 +35,16 @@ if [ ! -f "docker-compose.yml" ]; then
     exit 1
 fi
 
+# Check if .env file exists
+if [ ! -f ".env" ]; then
+    print_error ".env file not found!"
+    print_error "Docker Compose needs the .env file to inject environment variables."
+    print_error "Please create a .env file in the project root directory."
+    print_error "You can copy .env.example: cp .env.example .env"
+    exit 1
+fi
+print_success ".env file found"
+
 print_status "Starting deployment process..."
 echo ""
 

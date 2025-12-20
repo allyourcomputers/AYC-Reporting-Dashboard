@@ -7,6 +7,17 @@ set -e
 echo "🚀 Quick Deploy - HaloPSA Reporting Dashboard"
 echo ""
 
+# Check if .env file exists
+if [ ! -f ".env" ]; then
+    echo "✗ ERROR: .env file not found!"
+    echo "Docker Compose needs the .env file to inject environment variables."
+    echo "Please create a .env file in the project root directory."
+    echo "You can copy .env.example: cp .env.example .env"
+    exit 1
+fi
+echo "✓ .env file found"
+echo ""
+
 # Stop container
 echo "→ Stopping container..."
 docker-compose down

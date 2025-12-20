@@ -1,10 +1,12 @@
+// Load .env file in development (not needed in Docker as env vars are injected)
 require('dotenv').config();
+
 const axios = require('axios');
 const { createClient } = require('@supabase/supabase-js');
 
 // HaloPSA Configuration
 const HALO_API_URL = process.env.HALO_API_URL;
-const HALO_AUTH_URL = HALO_API_URL.replace('/api', '/auth');
+const HALO_AUTH_URL = HALO_API_URL ? HALO_API_URL.replace('/api', '/auth') : null;
 const HALO_CLIENT_ID = process.env.HALO_CLIENT_ID;
 const HALO_CLIENT_SECRET = process.env.HALO_CLIENT_SECRET;
 
@@ -12,8 +14,24 @@ const HALO_CLIENT_SECRET = process.env.HALO_CLIENT_SECRET;
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_KEY;
 
+// Debug: Log environment variable status (without revealing values)
+console.log('Sync Service - Environment check:');
+console.log('- HALO_API_URL:', HALO_API_URL || 'NOT SET');
+console.log('- HALO_CLIENT_ID:', HALO_CLIENT_ID ? 'Set' : 'NOT SET');
+console.log('- HALO_CLIENT_SECRET:', HALO_CLIENT_SECRET ? 'Set' : 'NOT SET');
+console.log('- SUPABASE_URL:', SUPABASE_URL ? `Set (${SUPABASE_URL.substring(0, 20)}...)` : 'NOT SET');
+console.log('- SUPABASE_KEY:', SUPABASE_KEY ? `Set (${SUPABASE_KEY.substring(0, 20)}...)` : 'NOT SET');
+
 if (!SUPABASE_URL || !SUPABASE_KEY) {
-  console.error('ERROR: SUPABASE_URL and SUPABASE_KEY must be set in .env file');
+  console.error('ERROR: SUPABASE_URL and SUPABASE_KEY must be set');
+  console.error('In development: Add them to .env file');
+  console.error('In Docker: Ensure .env file exists in the same directory as docker-compose.yml');
+  process.exit(1);
+}
+
+if (!HALO_API_URL || !HALO_CLIENT_ID || !HALO_CLIENT_SECRET) {
+  console.error('ERROR: HaloPSA credentials must be set');
+  console.error('Required: HALO_API_URL, HALO_CLIENT_ID, HALO_CLIENT_SECRET');
   process.exit(1);
 }
 
