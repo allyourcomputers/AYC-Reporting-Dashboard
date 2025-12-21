@@ -236,23 +236,17 @@ async function getServers() {
       const osPending = osPatches.filter(p => p.status !== 'INSTALLED').length;
       const softwarePending = softwarePatches.filter(p => p.status !== 'INSTALLED').length;
 
-      // Calculate uptime in days from computer system data
+      // Calculate uptime in days from OS data (lastBootTime is a Unix timestamp in seconds)
       let uptime = null;
-      if (computerSystem?.bootTime) {
-        const bootTime = typeof computerSystem.bootTime === 'number'
-          ? new Date(computerSystem.bootTime * 1000)
-          : new Date(computerSystem.bootTime);
+      if (os?.lastBootTime) {
+        const bootTime = new Date(os.lastBootTime * 1000); // Convert to milliseconds
         uptime = (Date.now() - bootTime.getTime()) / (1000 * 60 * 60 * 24);
-      } else if (computerSystem?.lastBootTime) {
-        const bootTime = typeof computerSystem.lastBootTime === 'number'
-          ? new Date(computerSystem.lastBootTime * 1000)
-          : new Date(computerSystem.lastBootTime);
+      } else if (device.os?.lastBootTime) {
+        const bootTime = new Date(device.os.lastBootTime * 1000);
         uptime = (Date.now() - bootTime.getTime()) / (1000 * 60 * 60 * 24);
-      } else if (device.lastRebootTime) {
-        const rebootTime = typeof device.lastRebootTime === 'number'
-          ? new Date(device.lastRebootTime * 1000)
-          : new Date(device.lastRebootTime);
-        uptime = (Date.now() - rebootTime.getTime()) / (1000 * 60 * 60 * 24);
+      } else if (computerSystem?.bootTime) {
+        const bootTime = new Date(computerSystem.bootTime * 1000);
+        uptime = (Date.now() - bootTime.getTime()) / (1000 * 60 * 60 * 24);
       }
 
       // Convert Unix timestamp to ISO string
@@ -385,27 +379,20 @@ async function getServerDetails(deviceId) {
       computerSystemTimestamp: computerSystem?.timestamp
     });
 
-    // Calculate uptime from computer system data
+    // Calculate uptime from OS data (lastBootTime is a Unix timestamp in seconds)
     let uptime = null;
-    if (computerSystem?.bootTime) {
-      // bootTime is likely a Unix timestamp
-      const bootTime = typeof computerSystem.bootTime === 'number'
-        ? new Date(computerSystem.bootTime * 1000)
-        : new Date(computerSystem.bootTime);
+    if (os?.lastBootTime) {
+      const bootTime = new Date(os.lastBootTime * 1000); // Convert to milliseconds
       uptime = (Date.now() - bootTime.getTime()) / (1000 * 60 * 60 * 24);
-      logger.info(`Calculated uptime from bootTime: ${uptime} days`);
-    } else if (computerSystem?.lastBootTime) {
-      const bootTime = typeof computerSystem.lastBootTime === 'number'
-        ? new Date(computerSystem.lastBootTime * 1000)
-        : new Date(computerSystem.lastBootTime);
+      logger.info(`Calculated uptime from os.lastBootTime: ${uptime} days`);
+    } else if (device.os?.lastBootTime) {
+      const bootTime = new Date(device.os.lastBootTime * 1000);
       uptime = (Date.now() - bootTime.getTime()) / (1000 * 60 * 60 * 24);
-      logger.info(`Calculated uptime from lastBootTime: ${uptime} days`);
-    } else if (device.lastRebootTime) {
-      const rebootTime = typeof device.lastRebootTime === 'number'
-        ? new Date(device.lastRebootTime * 1000)
-        : new Date(device.lastRebootTime);
-      uptime = (Date.now() - rebootTime.getTime()) / (1000 * 60 * 60 * 24);
-      logger.info(`Calculated uptime from device.lastRebootTime: ${uptime} days`);
+      logger.info(`Calculated uptime from device.os.lastBootTime: ${uptime} days`);
+    } else if (computerSystem?.bootTime) {
+      const bootTime = new Date(computerSystem.bootTime * 1000);
+      uptime = (Date.now() - bootTime.getTime()) / (1000 * 60 * 60 * 24);
+      logger.info(`Calculated uptime from computerSystem.bootTime: ${uptime} days`);
     }
 
     // Convert Unix timestamp to ISO string
