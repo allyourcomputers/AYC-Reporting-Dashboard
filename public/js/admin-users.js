@@ -60,6 +60,7 @@ async function loadCompanies() {
 
     const data = await response.json();
     companies = data.companies;
+    console.log('Companies loaded for user assignment:', companies);
   } catch (error) {
     console.error('Error loading companies:', error);
   }
@@ -180,6 +181,8 @@ function closeUserModal() {
  */
 function renderCompanyCheckboxes(selectedIds = []) {
   const container = document.getElementById('companiesCheckboxes');
+  console.log('Rendering company checkboxes. Companies array:', companies);
+  console.log('Selected IDs:', selectedIds);
 
   if (companies.length === 0) {
     container.innerHTML = '<p>No companies available. Create a company first.</p>';
