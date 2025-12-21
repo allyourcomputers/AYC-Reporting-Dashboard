@@ -468,18 +468,35 @@
                 `;
             }
 
-            const rows = patches.map(patch => `
-                <tr>
-                    <td><strong>${patch.patchName || patch.name || 'Unknown'}</strong></td>
-                    <td>${patch.kb || patch.id || 'N/A'}</td>
-                    <td>
-                        <span class="patch-severity ${getSeverityClass(patch.severity)}">
-                            ${patch.severity || 'Unknown'}
-                        </span>
-                    </td>
-                    <td>${formatDateTime(patch.installedDate || patch.releaseDate)}</td>
-                </tr>
-            `).join('');
+            const isSoftwarePatches = title.toLowerCase().includes('software');
+
+            const rows = patches.map(patch => {
+                // Software patches have different field names than OS patches
+                const patchName = isSoftwarePatches
+                    ? (patch.title || 'Unknown')
+                    : (patch.patchName || patch.name || 'Unknown');
+
+                const patchId = isSoftwarePatches
+                    ? (patch.productIdentifier || patch.id || 'N/A')
+                    : (patch.kbNumber || patch.kb || patch.id || 'N/A');
+
+                const severity = isSoftwarePatches
+                    ? (patch.impact || 'Unknown')
+                    : (patch.severity || 'Unknown');
+
+                return `
+                    <tr>
+                        <td><strong>${patchName}</strong></td>
+                        <td>${patchId}</td>
+                        <td>
+                            <span class="patch-severity ${getSeverityClass(severity)}">
+                                ${severity}
+                            </span>
+                        </td>
+                        <td>${formatDateTime(patch.installedDate || patch.releaseDate || patch.timestamp)}</td>
+                    </tr>
+                `;
+            }).join('');
 
             return `
                 <div class="patches-list">
