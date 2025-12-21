@@ -89,6 +89,15 @@
             font-size: 64px;
             margin-bottom: 15px;
             filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .server-icon img {
+            width: 64px;
+            height: 64px;
+            object-fit: contain;
         }
 
         .server-name {
@@ -233,6 +242,11 @@
                 font-size: 48px;
             }
 
+            .server-icon img {
+                width: 48px;
+                height: 48px;
+            }
+
             .server-name {
                 font-size: 14px;
             }
@@ -346,9 +360,9 @@
         function getOSIcon(osType) {
             switch(osType) {
                 case 'windows':
-                    return '🪟'; // Windows logo emoji
+                    return '<img src="https://upload.wikimedia.org/wikipedia/commons/0/0a/Unofficial_Windows_logo_variant_-_2002%E2%80%932012_%28Multicolored%29.svg" alt="Windows">';
                 case 'linux':
-                    return '🐧'; // Linux Tux penguin
+                    return '<img src="https://upload.wikimedia.org/wikipedia/commons/3/35/Tux.svg" alt="Linux">';
                 default:
                     return '🖥️'; // Generic computer
             }

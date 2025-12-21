@@ -53,6 +53,14 @@
         .server-title-icon {
             font-size: 64px;
             filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+            display: flex;
+            align-items: center;
+        }
+
+        .server-title-icon img {
+            width: 64px;
+            height: 64px;
+            object-fit: contain;
         }
 
         .server-title-text h1 {
@@ -309,9 +317,9 @@
         function getOSIcon(osType) {
             switch(osType) {
                 case 'windows':
-                    return '🪟';
+                    return '<img src="https://upload.wikimedia.org/wikipedia/commons/0/0a/Unofficial_Windows_logo_variant_-_2002%E2%80%932012_%28Multicolored%29.svg" alt="Windows">';
                 case 'linux':
-                    return '🐧';
+                    return '<img src="https://upload.wikimedia.org/wikipedia/commons/3/35/Tux.svg" alt="Linux">';
                 default:
                     return '🖥️';
             }
