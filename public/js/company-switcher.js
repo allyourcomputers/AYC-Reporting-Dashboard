@@ -47,6 +47,7 @@ async function loadUserProfile() {
 
     userProfile = await response.json();
     renderCompanySwitcher();
+    updateSidebar();
     updateAdminNavigation();
   } catch (error) {
     console.error('Error loading user profile:', error);
@@ -54,7 +55,7 @@ async function loadUserProfile() {
 }
 
 /**
- * Render the company switcher UI
+ * Render the company switcher UI (top banner - impersonation only)
  */
 function renderCompanySwitcher() {
   const container = document.getElementById('companySwitcher');
@@ -80,62 +81,85 @@ function renderCompanySwitcher() {
     `;
   }
 
-  // Company Switcher and User Info
-  html += '<div class="user-info-bar">';
+  container.innerHTML = html;
+}
 
-  // Super Admin Badge
-  if (userProfile.role === 'super_admin') {
-    html += '<span class="badge badge-super-admin">Super Admin</span>';
+/**
+ * Update the sidebar with user profile information
+ */
+function updateSidebar() {
+  // Update company logo
+  const logoImg = document.querySelector('.sidebar .logo img');
+  if (logoImg) {
+    const activeCompany = userProfile.companies?.find(c => c.id === userProfile.activeCompanyId);
+    if (activeCompany && activeCompany.logoUrl) {
+      logoImg.src = activeCompany.logoUrl;
+      logoImg.alt = activeCompany.name;
+    } else {
+      logoImg.src = '/images/logo.png';
+      logoImg.alt = 'Company Dashboard';
+    }
   }
 
-  // Company Switcher (if user has companies)
-  if (userProfile.companies && userProfile.companies.length > 0) {
-    if (userProfile.companies.length === 1) {
-      // Single company - just show name
-      html += `
-        <div class="company-display">
-          <span class="company-icon">🏢</span>
-          <span class="company-name">${userProfile.companies[0].name}</span>
-        </div>
-      `;
-    } else {
-      // Multiple companies - show dropdown
-      html += `
-        <div class="company-switcher">
-          <label for="companySelect" class="company-label">
-            <span class="company-icon">🏢</span>
-            Company:
-          </label>
-          <select id="companySelect" class="company-select" onchange="switchCompany(this.value)">
-            ${userProfile.companies.map(company => `
-              <option value="${company.id}" ${company.id === userProfile.activeCompanyId ? 'selected' : ''}>
-                ${company.name}
-              </option>
-            `).join('')}
-          </select>
+  // Update user info section
+  const userInfoElement = document.getElementById('userInfo');
+  if (userInfoElement) {
+    let userInfoHtml = '';
+
+    // Super Admin Badge
+    if (userProfile.role === 'super_admin') {
+      userInfoHtml += '<div class="sidebar-badge">Super Admin</div>';
+    }
+
+    // User name
+    userInfoHtml += `<div class="sidebar-user-name">${userProfile.fullName}</div>`;
+
+    // Email
+    const email = userProfile.isImpersonating && userProfile.impersonatedUser
+      ? userProfile.impersonatedUser.email
+      : userProfile.email;
+    userInfoHtml += `<div class="sidebar-user-email">${email || ''}</div>`;
+
+    // Company info
+    if (userProfile.companies && userProfile.companies.length > 0) {
+      const activeCompany = userProfile.companies.find(c => c.id === userProfile.activeCompanyId);
+
+      if (userProfile.companies.length === 1) {
+        // Single company - just show name
+        userInfoHtml += `
+          <div class="sidebar-company">
+            <span class="sidebar-company-icon">🏢</span>
+            <span class="sidebar-company-name">${userProfile.companies[0].name}</span>
+          </div>
+        `;
+      } else {
+        // Multiple companies - show dropdown
+        userInfoHtml += `
+          <div class="sidebar-company-select">
+            <label for="sidebarCompanySelect" class="sidebar-company-label">
+              <span class="sidebar-company-icon">🏢</span> Company:
+            </label>
+            <select id="sidebarCompanySelect" class="sidebar-company-dropdown" onchange="switchCompany(this.value)">
+              ${userProfile.companies.map(company => `
+                <option value="${company.id}" ${company.id === userProfile.activeCompanyId ? 'selected' : ''}>
+                  ${company.name}
+                </option>
+              `).join('')}
+            </select>
+          </div>
+        `;
+      }
+    } else if (userProfile.role !== 'super_admin') {
+      // Customer user with no companies assigned
+      userInfoHtml += `
+        <div class="sidebar-company warning">
+          <span>⚠️ No company assigned</span>
         </div>
       `;
     }
-  } else if (userProfile.role !== 'super_admin') {
-    // Customer user with no companies assigned
-    html += `
-      <div class="company-display warning">
-        <span>⚠️ No company assigned. Contact administrator.</span>
-      </div>
-    `;
+
+    userInfoElement.innerHTML = userInfoHtml;
   }
-
-  // User name and logout
-  html += `
-    <div class="user-actions">
-      <span class="user-name">${userProfile.fullName}</span>
-      <button class="btn-logout" onclick="logout()">Logout</button>
-    </div>
-  `;
-
-  html += '</div>';
-
-  container.innerHTML = html;
 }
 
 /**

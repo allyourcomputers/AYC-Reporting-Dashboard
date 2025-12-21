@@ -297,7 +297,7 @@
             </a>
         </nav>
         <div class="user-account-section">
-            <div class="user-email">Signed in as</div>
+            
             <div id="userInfo" class="user-email-value">Loading...</div>
             <button id="logoutBtn" class="logout-btn" onclick="logout()">
                 <span class="logout-icon">🚪</span>
@@ -579,7 +579,6 @@
 
             // Setup logout button and user info
             setupLogoutButton();
-            displayUserInfo();
 
             // Setup refresh button
             document.getElementById('refreshBtn').addEventListener('click', loadServersData);

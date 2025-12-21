@@ -47,6 +47,10 @@ router.get('/', async (req, res) => {
       logoUrl: uc.companies.logo_url
     }));
 
+    // Get current user's email from auth
+    const { data: { user: currentAuthUser }, error: currentAuthError } = await supabase.auth.admin.getUserById(userId);
+    const currentUserEmail = currentAuthUser?.email || 'Unknown';
+
     // Check if currently impersonating
     const isImpersonating = profile.impersonating_user_id !== null;
     let impersonatedUser = null;
@@ -77,6 +81,7 @@ router.get('/', async (req, res) => {
 
     res.json({
       id: profile.user_id,
+      email: currentUserEmail,
       fullName: profile.full_name,
       role: profile.role,
       activeCompanyId: profile.active_company_id,

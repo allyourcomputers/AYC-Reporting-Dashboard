@@ -212,8 +212,7 @@
             </a>
         </nav>
         <div class="user-account-section">
-            <div class="user-email">Signed in as</div>
-            <div id="userInfo" class="user-email-value">Loading...</div>
+            <div id="userInfo">Loading...</div>
             <button id="logoutBtn" class="logout-btn" onclick="logout()">
                 <span class="logout-icon">🚪</span>
                 <span>Logout</span>
@@ -565,9 +564,8 @@
             const authenticated = await initAuth();
             if (!authenticated) return;
 
-            // Setup logout button and user info
+            // Setup logout button
             setupLogoutButton();
-            displayUserInfo();
 
             // Load dashboard data
             loadDashboardData();

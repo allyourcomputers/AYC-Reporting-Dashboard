@@ -176,6 +176,88 @@ body {
     font-size: 16px;
 }
 
+/* Sidebar User Profile Styles */
+.sidebar-badge {
+    display: inline-block;
+    background: var(--brand-purple);
+    color: white;
+    font-size: 10px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 10px;
+}
+
+.sidebar-user-name {
+    font-size: 15px;
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 4px;
+}
+
+.sidebar-user-email {
+    font-size: 12px;
+    color: #999;
+    margin-bottom: 12px;
+    word-break: break-all;
+}
+
+.sidebar-company {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: #666;
+    padding: 8px 0;
+    margin-bottom: 12px;
+}
+
+.sidebar-company-icon {
+    font-size: 14px;
+}
+
+.sidebar-company-name {
+    font-weight: 600;
+}
+
+.sidebar-company-select {
+    margin-bottom: 12px;
+}
+
+.sidebar-company-label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: #999;
+    font-weight: 600;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+}
+
+.sidebar-company-dropdown {
+    width: 100%;
+    padding: 8px;
+    font-size: 13px;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    background: white;
+    color: #333;
+    cursor: pointer;
+}
+
+.sidebar-company-dropdown:focus {
+    outline: none;
+    border-color: var(--brand-blue);
+}
+
+.sidebar-company.warning {
+    color: #f39c12;
+    font-size: 12px;
+}
+
 /* Main Content Area */
 .main-content {
     margin-left: 260px;
