@@ -165,12 +165,42 @@ app.use('/api/admin/companies', requireAuth, injectCompanyContext, adminCompanie
 app.use('/api/profile', requireAuth, userProfileRouter);
 
 // Get all active clients (clients with tickets in the last 12 months)
-app.get('/api/clients', requireAuth, async (req, res) => {
+app.get('/api/clients', requireAuth, injectCompanyContext, async (req, res) => {
   try {
-    const { data, error } = await supabase
+    // Determine which clients the user can see
+    let clientQuery = supabase
       .from('active_clients')
       .select('*')
       .order('name', { ascending: true });
+
+    // For customer users or impersonating super admins, filter by company's HaloPSA clients
+    if (!req.isSuperAdmin || req.userProfile.impersonating_user_id) {
+      if (!req.activeCompanyId) {
+        return res.status(403).json({ error: 'No active company assigned' });
+      }
+
+      // Get HaloPSA client IDs for this company
+      const { data: haloPSAClients, error: clientsError } = await supabase
+        .from('company_halopsa_clients')
+        .select('halopsa_client_id')
+        .eq('company_id', req.activeCompanyId);
+
+      if (clientsError) {
+        logger.error('Error fetching company HaloPSA clients', { error: clientsError });
+        return res.status(500).json({ error: 'Failed to fetch company data' });
+      }
+
+      const allowedClientIds = haloPSAClients.map(c => c.halopsa_client_id);
+
+      if (allowedClientIds.length === 0) {
+        // Company has no HaloPSA clients assigned, return empty array
+        return res.json([]);
+      }
+
+      clientQuery = clientQuery.in('id', allowedClientIds);
+    }
+
+    const { data, error } = await clientQuery;
 
     if (error) {
       console.error('Error fetching active clients:', error);
@@ -185,12 +215,36 @@ app.get('/api/clients', requireAuth, async (req, res) => {
 });
 
 // Get ticket statistics for a client
-app.get('/api/tickets/stats', requireAuth, async (req, res) => {
+app.get('/api/tickets/stats', requireAuth, injectCompanyContext, async (req, res) => {
   try {
     const { clientId, startDate, endDate } = req.query;
 
     if (!clientId || !startDate || !endDate) {
       return res.status(400).json({ error: 'clientId, startDate, and endDate are required' });
+    }
+
+    // Verify user has access to this client
+    if (!req.isSuperAdmin || req.userProfile.impersonating_user_id) {
+      if (!req.activeCompanyId) {
+        return res.status(403).json({ error: 'No active company assigned' });
+      }
+
+      // Get HaloPSA client IDs for this company
+      const { data: haloPSAClients, error: clientsError } = await supabase
+        .from('company_halopsa_clients')
+        .select('halopsa_client_id')
+        .eq('company_id', req.activeCompanyId);
+
+      if (clientsError) {
+        logger.error('Error fetching company HaloPSA clients', { error: clientsError });
+        return res.status(500).json({ error: 'Failed to fetch company data' });
+      }
+
+      const allowedClientIds = haloPSAClients.map(c => c.halopsa_client_id);
+
+      if (!allowedClientIds.includes(parseInt(clientId))) {
+        return res.status(403).json({ error: 'Access denied to this client' });
+      }
     }
 
     const { data: tickets, error } = await supabase
@@ -227,12 +281,36 @@ app.get('/api/tickets/stats', requireAuth, async (req, res) => {
 });
 
 // Get monthly statistics for multiple months
-app.post('/api/tickets/monthly-stats', requireAuth, async (req, res) => {
+app.post('/api/tickets/monthly-stats', requireAuth, injectCompanyContext, async (req, res) => {
   try {
     const { clientId, months } = req.body;
 
     if (!clientId || !months || !Array.isArray(months)) {
       return res.status(400).json({ error: 'clientId and months array are required' });
+    }
+
+    // Verify user has access to this client
+    if (!req.isSuperAdmin || req.userProfile.impersonating_user_id) {
+      if (!req.activeCompanyId) {
+        return res.status(403).json({ error: 'No active company assigned' });
+      }
+
+      // Get HaloPSA client IDs for this company
+      const { data: haloPSAClients, error: clientsError } = await supabase
+        .from('company_halopsa_clients')
+        .select('halopsa_client_id')
+        .eq('company_id', req.activeCompanyId);
+
+      if (clientsError) {
+        logger.error('Error fetching company HaloPSA clients', { error: clientsError });
+        return res.status(500).json({ error: 'Failed to fetch company data' });
+      }
+
+      const allowedClientIds = haloPSAClients.map(c => c.halopsa_client_id);
+
+      if (!allowedClientIds.includes(parseInt(clientId))) {
+        return res.status(403).json({ error: 'Access denied to this client' });
+      }
     }
 
     const results = [];
@@ -320,7 +398,7 @@ app.get('/api/sync/status', requireAuth, async (req, res) => {
 });
 
 // Get dashboard statistics
-app.get('/api/dashboard/stats', requireAuth, async (req, res) => {
+app.get('/api/dashboard/stats', requireAuth, injectCompanyContext, async (req, res) => {
   try {
     // Get current date and various time periods
     const now = new Date();
@@ -328,10 +406,53 @@ app.get('/api/dashboard/stats', requireAuth, async (req, res) => {
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const oneYearAgo = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
 
-    // Get all tickets
-    const { data: allTickets, error: allError } = await supabase
+    // Determine which HaloPSA clients the user can see
+    let allowedClientIds = null; // null = all clients (super admin not impersonating)
+
+    // For customer users or impersonating super admins, filter by company's HaloPSA clients
+    if (!req.isSuperAdmin || req.userProfile.impersonating_user_id) {
+      if (!req.activeCompanyId) {
+        return res.status(403).json({ error: 'No active company assigned' });
+      }
+
+      // Get HaloPSA client IDs for this company
+      const { data: haloPSAClients, error: clientsError } = await supabase
+        .from('company_halopsa_clients')
+        .select('halopsa_client_id')
+        .eq('company_id', req.activeCompanyId);
+
+      if (clientsError) {
+        logger.error('Error fetching company HaloPSA clients', { error: clientsError });
+        return res.status(500).json({ error: 'Failed to fetch company data' });
+      }
+
+      allowedClientIds = haloPSAClients.map(c => c.halopsa_client_id);
+
+      if (allowedClientIds.length === 0) {
+        // Company has no HaloPSA clients assigned, return empty stats
+        return res.json({
+          totalTickets: 0,
+          openTickets: 0,
+          closedTickets: 0,
+          recentStats: { total: 0, open: 0, closed: 0, period: '30 days' },
+          weekStats: { total: 0, period: '7 days' },
+          topClients: [],
+          dailyTrend: [],
+          satisfaction: { satisfied: 0, dissatisfied: 0, total: 0, satisfactionRate: 0 }
+        });
+      }
+    }
+
+    // Build ticket query with optional client filtering
+    let allTicketsQuery = supabase
       .from('tickets')
       .select('id, client_id, is_closed, date_occurred');
+
+    if (allowedClientIds !== null) {
+      allTicketsQuery = allTicketsQuery.in('client_id', allowedClientIds);
+    }
+
+    const { data: allTickets, error: allError } = await allTicketsQuery;
 
     if (allError) {
       console.error('Error fetching all tickets:', allError);
@@ -339,10 +460,16 @@ app.get('/api/dashboard/stats', requireAuth, async (req, res) => {
     }
 
     // Get tickets from last 30 days
-    const { data: recentTickets, error: recentError } = await supabase
+    let recentTicketsQuery = supabase
       .from('tickets')
       .select('id, client_id, is_closed, date_occurred')
       .gte('date_occurred', thirtyDaysAgo.toISOString());
+
+    if (allowedClientIds !== null) {
+      recentTicketsQuery = recentTicketsQuery.in('client_id', allowedClientIds);
+    }
+
+    const { data: recentTickets, error: recentError } = await recentTicketsQuery;
 
     if (recentError) {
       console.error('Error fetching recent tickets:', recentError);
@@ -350,10 +477,16 @@ app.get('/api/dashboard/stats', requireAuth, async (req, res) => {
     }
 
     // Get tickets from last 7 days
-    const { data: weekTickets, error: weekError } = await supabase
+    let weekTicketsQuery = supabase
       .from('tickets')
       .select('id, client_id, is_closed, date_occurred')
       .gte('date_occurred', sevenDaysAgo.toISOString());
+
+    if (allowedClientIds !== null) {
+      weekTicketsQuery = weekTicketsQuery.in('client_id', allowedClientIds);
+    }
+
+    const { data: weekTickets, error: weekError } = await weekTicketsQuery;
 
     if (weekError) {
       console.error('Error fetching week tickets:', weekError);
@@ -410,20 +543,32 @@ app.get('/api/dashboard/stats', requireAuth, async (req, res) => {
     });
 
     // Get tickets from last year for trend data
-    const { data: yearTickets, error: yearError } = await supabase
+    let yearTicketsQuery = supabase
       .from('tickets')
       .select('id, date_occurred')
       .gte('date_occurred', oneYearAgo.toISOString());
+
+    if (allowedClientIds !== null) {
+      yearTicketsQuery = yearTicketsQuery.in('client_id', allowedClientIds);
+    }
+
+    const { data: yearTickets, error: yearError } = await yearTicketsQuery;
 
     if (yearError) {
       console.error('Error fetching year tickets:', yearError);
     }
 
     // Get all tickets from last year with date_occurred and date_closed
-    const { data: yearTicketsDetailed, error: yearDetailedError } = await supabase
+    let yearTicketsDetailedQuery = supabase
       .from('tickets')
       .select('id, date_occurred, date_closed, is_closed')
       .gte('date_occurred', oneYearAgo.toISOString());
+
+    if (allowedClientIds !== null) {
+      yearTicketsDetailedQuery = yearTicketsDetailedQuery.in('client_id', allowedClientIds);
+    }
+
+    const { data: yearTicketsDetailed, error: yearDetailedError } = await yearTicketsDetailedQuery;
 
     if (yearDetailedError) {
       console.error('Error fetching year tickets detailed:', yearDetailedError);
@@ -454,9 +599,12 @@ app.get('/api/dashboard/stats', requireAuth, async (req, res) => {
     }
 
     // Get feedback/satisfaction data
-    const { data: feedbackData, error: feedbackError } = await supabase
+    // Feedback needs to be filtered by tickets that belong to allowed clients
+    let feedbackQuery = supabase
       .from('feedback')
-      .select('id, score, date');
+      .select('id, score, date, ticket_id');
+
+    const { data: feedbackData, error: feedbackError } = await feedbackQuery;
 
     let satisfactionStats = {
       satisfied: 0,
@@ -469,9 +617,16 @@ app.get('/api/dashboard/stats', requireAuth, async (req, res) => {
       console.warn('Error fetching feedback data:', feedbackError.message);
       // Continue without feedback data - not critical
     } else if (feedbackData && feedbackData.length > 0) {
-      const satisfied = feedbackData.filter(f => f.score === 1).length;
-      const dissatisfied = feedbackData.filter(f => f.score === 2).length;
-      const total = feedbackData.filter(f => f.score).length;
+      // Filter feedback to only include tickets from allowed clients
+      let filteredFeedback = feedbackData;
+      if (allowedClientIds !== null) {
+        const allowedTicketIds = allTickets.map(t => t.id);
+        filteredFeedback = feedbackData.filter(f => allowedTicketIds.includes(f.ticket_id));
+      }
+
+      const satisfied = filteredFeedback.filter(f => f.score === 1).length;
+      const dissatisfied = filteredFeedback.filter(f => f.score === 2).length;
+      const total = filteredFeedback.filter(f => f.score).length;
 
       satisfactionStats = {
         satisfied,
