@@ -15,7 +15,9 @@ async function init() {
  */
 async function loadCompanies() {
   try {
-    const token = localStorage.getItem('supabase.auth.token');
+    const authData = localStorage.getItem('sb-supabase-auth-token');
+    const session = JSON.parse(authData);
+    const token = session.access_token;
 
     const response = await fetch('/api/admin/companies', {
       headers: {
@@ -42,7 +44,9 @@ async function loadCompanies() {
  */
 async function loadAvailableClients() {
   try {
-    const token = localStorage.getItem('supabase.auth.token');
+    const authData = localStorage.getItem('sb-supabase-auth-token');
+    const session = JSON.parse(authData);
+    const token = session.access_token;
 
     const response = await fetch('/api/admin/companies/available-clients', {
       headers: {
@@ -122,11 +126,63 @@ function renderCompanies() {
 }
 
 /**
+ * Populate HaloPSA clients dropdown
+ */
+function populateHaloPSADropdown() {
+  const select = document.getElementById('haloPSAClientSelect');
+
+  if (availableClients.length === 0) {
+    select.innerHTML = '<option value="">No HaloPSA clients available</option>';
+    return;
+  }
+
+  // Filter out clients that are already mapped to companies
+  const mappedClientIds = companies.flatMap(c => c.haloPSAClients.map(client => client.id));
+  const unmappedClients = availableClients.filter(client => !mappedClientIds.includes(client.id));
+
+  if (unmappedClients.length === 0) {
+    select.innerHTML = '<option value="">All HaloPSA clients are already mapped to companies</option>';
+    return;
+  }
+
+  select.innerHTML = '<option value="">-- Select a HaloPSA Client --</option>' +
+    unmappedClients.map(client => `
+      <option value="${client.id}" data-name="${client.name}">${client.name}</option>
+    `).join('');
+}
+
+/**
+ * Update company name when HaloPSA client is selected
+ */
+function updateCompanyNameFromClient() {
+  const select = document.getElementById('haloPSAClientSelect');
+  const selectedOption = select.options[select.selectedIndex];
+
+  if (selectedOption.value) {
+    const clientName = selectedOption.getAttribute('data-name');
+    document.getElementById('companyName').value = clientName;
+    document.getElementById('companyNameGroup').style.display = 'block';
+  } else {
+    document.getElementById('companyName').value = '';
+    document.getElementById('companyNameGroup').style.display = 'none';
+  }
+}
+
+/**
  * Open create company modal
  */
 function openCreateCompanyModal() {
   editingCompanyId = null;
-  document.getElementById('modalTitle').textContent = 'Create New Company';
+  document.getElementById('modalTitle').textContent = 'Create New Company from HaloPSA Client';
+
+  // Show HaloPSA select, hide direct name input initially
+  document.getElementById('haloPSASelectGroup').style.display = 'block';
+  document.getElementById('companyNameGroup').style.display = 'none';
+
+  // Populate HaloPSA clients dropdown
+  populateHaloPSADropdown();
+
+  document.getElementById('haloPSAClientSelect').value = '';
   document.getElementById('companyName').value = '';
   document.getElementById('companyLogoUrl').value = '';
   document.getElementById('companyModal').classList.add('active');
@@ -141,6 +197,11 @@ function openEditCompanyModal(companyId) {
 
   editingCompanyId = companyId;
   document.getElementById('modalTitle').textContent = 'Edit Company';
+
+  // Hide HaloPSA select for editing, show name input
+  document.getElementById('haloPSASelectGroup').style.display = 'none';
+  document.getElementById('companyNameGroup').style.display = 'block';
+
   document.getElementById('companyName').value = company.name;
   document.getElementById('companyLogoUrl').value = company.logoUrl || '';
   document.getElementById('companyModal').classList.add('active');
@@ -161,13 +222,17 @@ async function saveCompany() {
   try {
     const name = document.getElementById('companyName').value.trim();
     const logoUrl = document.getElementById('companyLogoUrl').value.trim();
+    const selectedClientId = document.getElementById('haloPSAClientSelect').value;
 
     if (!name) {
       alert('Please enter a company name');
       return;
     }
 
-    const token = localStorage.getItem('supabase.auth.token');
+    // Get auth token
+    const authData = localStorage.getItem('sb-supabase-auth-token');
+    const session = JSON.parse(authData);
+    const token = session.access_token;
 
     if (editingCompanyId) {
       // Update existing company
@@ -188,6 +253,11 @@ async function saveCompany() {
       alert('Company updated successfully');
     } else {
       // Create new company
+      if (!selectedClientId) {
+        alert('Please select a HaloPSA client');
+        return;
+      }
+
       const response = await fetch('/api/admin/companies', {
         method: 'POST',
         headers: {
@@ -202,7 +272,25 @@ async function saveCompany() {
         throw new Error(error.error || 'Failed to create company');
       }
 
-      alert('Company created successfully');
+      const result = await response.json();
+      const newCompanyId = result.company.id;
+
+      // Automatically map the selected HaloPSA client to this company
+      const mapResponse = await fetch(`/api/admin/companies/${newCompanyId}/halopsa-clients`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ clientIds: [parseInt(selectedClientId)] })
+      });
+
+      if (!mapResponse.ok) {
+        console.error('Failed to map HaloPSA client automatically');
+        alert('Company created, but failed to map HaloPSA client. You can map it manually.');
+      } else {
+        alert('Company created and linked to HaloPSA client successfully!');
+      }
     }
 
     closeCompanyModal();
@@ -222,7 +310,9 @@ async function deleteCompany(companyId, companyName) {
   }
 
   try {
-    const token = localStorage.getItem('supabase.auth.token');
+    const authData = localStorage.getItem('sb-supabase-auth-token');
+    const session = JSON.parse(authData);
+    const token = session.access_token;
 
     const response = await fetch(`/api/admin/companies/${companyId}`, {
       method: 'DELETE',
@@ -320,7 +410,9 @@ function getSelectedClientIds() {
 async function saveHaloPSAMappings() {
   try {
     const clientIds = getSelectedClientIds();
-    const token = localStorage.getItem('supabase.auth.token');
+    const authData = localStorage.getItem('sb-supabase-auth-token');
+    const session = JSON.parse(authData);
+    const token = session.access_token;
 
     const response = await fetch(`/api/admin/companies/${managingCompanyId}/halopsa-clients`, {
       method: 'POST',

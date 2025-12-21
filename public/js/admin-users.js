@@ -14,7 +14,9 @@ async function init() {
  */
 async function loadUsers() {
   try {
-    const token = localStorage.getItem('supabase.auth.token');
+    const authData = localStorage.getItem('sb-supabase-auth-token');
+    const session = JSON.parse(authData);
+    const token = session.access_token;
 
     const response = await fetch('/api/admin/users', {
       headers: {
@@ -41,7 +43,9 @@ async function loadUsers() {
  */
 async function loadCompanies() {
   try {
-    const token = localStorage.getItem('supabase.auth.token');
+    const authData = localStorage.getItem('sb-supabase-auth-token');
+    const session = JSON.parse(authData);
+    const token = session.access_token;
 
     const response = await fetch('/api/admin/companies', {
       headers: {
@@ -238,7 +242,9 @@ async function saveUser() {
       return;
     }
 
-    const token = localStorage.getItem('supabase.auth.token');
+    const authData = localStorage.getItem('sb-supabase-auth-token');
+    const session = JSON.parse(authData);
+    const token = session.access_token;
 
     if (editingUserId) {
       // Update existing user
@@ -300,7 +306,9 @@ async function deleteUser(userId, userName) {
   }
 
   try {
-    const token = localStorage.getItem('supabase.auth.token');
+    const authData = localStorage.getItem('sb-supabase-auth-token');
+    const session = JSON.parse(authData);
+    const token = session.access_token;
 
     const response = await fetch(`/api/admin/users/${userId}`, {
       method: 'DELETE',
@@ -328,7 +336,9 @@ async function deleteUser(userId, userName) {
  */
 async function impersonateUser(userId) {
   try {
-    const token = localStorage.getItem('supabase.auth.token');
+    const authData = localStorage.getItem('sb-supabase-auth-token');
+    const session = JSON.parse(authData);
+    const token = session.access_token;
 
     const response = await fetch(`/api/profile/impersonate/${userId}`, {
       method: 'POST',

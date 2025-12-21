@@ -269,7 +269,17 @@
         <div class="modal-content">
             <div class="modal-header" id="modalTitle">Create New Company</div>
 
-            <div class="form-group">
+            <div class="form-group" id="haloPSASelectGroup">
+                <label class="form-label">Select HaloPSA Client*</label>
+                <select id="haloPSAClientSelect" class="form-input" onchange="updateCompanyNameFromClient()">
+                    <option value="">-- Select a HaloPSA Client --</option>
+                </select>
+                <small style="color: #666; font-size: 12px; margin-top: 5px; display: block;">
+                    This will create a company and automatically link it to the selected HaloPSA client
+                </small>
+            </div>
+
+            <div class="form-group" id="companyNameGroup">
                 <label class="form-label">Company Name*</label>
                 <input type="text" id="companyName" class="form-input" placeholder="Acme Corporation" required>
             </div>
