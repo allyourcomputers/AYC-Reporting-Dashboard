@@ -3,11 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - HaloPSA</title>
+    <title>Dashboard - Company Dashboard</title>
     <link rel="stylesheet" href="/css/shared.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="/js/auth.js"></script>
+    <script src="/js/company-switcher.js"></script>
     <style>
         .metric-grid {
             display: grid;
@@ -200,11 +201,20 @@
                 <span class="nav-icon">🖥️</span>
                 Servers
             </a>
+            <div class="nav-section" id="adminNavSection" style="display:none;">ADMIN</div>
+            <a href="/admin-users.html" class="nav-item" id="adminUsersLink" style="display:none;">
+                <span class="nav-icon">👥</span>
+                Users
+            </a>
+            <a href="/admin-companies.html" class="nav-item" id="adminCompaniesLink" style="display:none;">
+                <span class="nav-icon">🏢</span>
+                Companies
+            </a>
         </nav>
         <div class="user-account-section">
             <div class="user-email">Signed in as</div>
             <div id="userInfo" class="user-email-value">Loading...</div>
-            <button id="logoutBtn" class="logout-btn">
+            <button id="logoutBtn" class="logout-btn" onclick="logout()">
                 <span class="logout-icon">🚪</span>
                 <span>Logout</span>
             </button>
@@ -212,6 +222,8 @@
     </div>
 
     <div class="main-content">
+        <div id="companySwitcher"></div>
+
         <div class="dashboard-content">
             <div class="welcome-section">
                 <h1>Hi, welcome back!</h1>

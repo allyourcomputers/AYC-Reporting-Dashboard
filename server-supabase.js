@@ -7,6 +7,10 @@ const { createClient } = require('@supabase/supabase-js');
 const { performFullSync } = require('./sync-service');
 const logger = require('./logger');
 const ninjaOneClient = require('./ninjaone-client');
+const { injectCompanyContext } = require('./middleware/company-context');
+const adminUsersRouter = require('./routes/admin-users');
+const adminCompaniesRouter = require('./routes/admin-companies');
+const userProfileRouter = require('./routes/user-profile');
 
 const app = express();
 const PORT = process.env.PORT || 3100;
@@ -140,6 +144,11 @@ app.get('/login', (req, res) => {
 // Serve all static files (authentication is handled client-side)
 // API routes are protected with the requireAuth middleware
 app.use(express.static('public'));
+
+// Multi-tenant routes (require authentication and company context)
+app.use('/api/admin/users', requireAuth, injectCompanyContext, adminUsersRouter);
+app.use('/api/admin/companies', requireAuth, injectCompanyContext, adminCompaniesRouter);
+app.use('/api/profile', requireAuth, userProfileRouter);
 
 // Get all active clients (clients with tickets in the last 12 months)
 app.get('/api/clients', requireAuth, async (req, res) => {
@@ -482,11 +491,65 @@ app.get('/api/dashboard/stats', requireAuth, async (req, res) => {
   }
 });
 
-// Get all servers with monitoring data
-app.get('/api/servers', requireAuth, async (req, res) => {
+// Get all servers with monitoring data (filtered by company for customers)
+app.get('/api/servers', requireAuth, injectCompanyContext, async (req, res) => {
   try {
     const serversData = await ninjaOneClient.getServers();
-    res.json(serversData);
+
+    // If super admin and not impersonating, show all servers
+    if (req.isSuperAdmin && !req.userProfile.impersonating_user_id) {
+      return res.json(serversData);
+    }
+
+    // For customer users or impersonating super admins, filter by company NinjaOne orgs
+    if (req.activeCompanyId) {
+      // Get NinjaOne org IDs for this company
+      const { data: ninjaOneOrgs, error } = await supabase
+        .from('company_ninjaone_orgs')
+        .select('ninjaone_org_id')
+        .eq('company_id', req.activeCompanyId);
+
+      if (error) {
+        logger.error('Failed to fetch company NinjaOne orgs', { error, companyId: req.activeCompanyId });
+        return res.status(500).json({ error: 'Failed to fetch company organizations' });
+      }
+
+      const allowedOrgIds = ninjaOneOrgs.map(org => org.ninjaone_org_id);
+
+      // Filter servers by organization ID
+      const filteredServers = serversData.servers.filter(server => {
+        // The server should have an organizationId from NinjaOne
+        // We'll need to check the ninjaone-client.js to see the structure
+        // For now, assuming the server has a property that maps to org
+        return allowedOrgIds.length === 0 || allowedOrgIds.includes(server.organizationId);
+      });
+
+      return res.json({
+        ...serversData,
+        servers: filteredServers,
+        summary: {
+          ...serversData.summary,
+          totalServers: filteredServers.length,
+          onlineServers: filteredServers.filter(s => s.status === 'ONLINE').length,
+          offlineServers: filteredServers.filter(s => s.status === 'OFFLINE').length,
+          serversNeedingPatches: filteredServers.filter(s =>
+            s.patches.osPending > 0 || s.patches.softwarePending > 0
+          ).length
+        }
+      });
+    }
+
+    // No company assigned, return empty result
+    res.json({
+      summary: {
+        totalServers: 0,
+        onlineServers: 0,
+        offlineServers: 0,
+        serversNeedingPatches: 0
+      },
+      servers: [],
+      lastUpdated: new Date().toISOString()
+    });
   } catch (error) {
     logger.error('Error fetching servers:', error);
     res.status(500).json({ error: 'Failed to fetch server data' });

@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Company Management - Company Dashboard</title>
+    <link rel="stylesheet" href="/css/shared.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/company-switcher.js"></script>
+    <style>
+        .companies-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .company-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .company-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #eee;
+        }
+
+        .company-card-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .company-card-section {
+            margin: 20px 0;
+        }
+
+        .company-card-section-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #999;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        .mapping-list {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .mapping-item {
+            background: #f5f5f5;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            color: #333;
+        }
+
+        .mapping-empty {
+            color: #999;
+            font-style: italic;
+            font-size: 13px;
+        }
+
+        .company-card-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            flex: 1;
+        }
+
+        .btn-primary {
+            background: var(--brand-blue);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #666;
+        }
+
+        .btn-danger {
+            background: #f44336;
+            color: white;
+        }
+
+        .btn-add-company {
+            background: var(--brand-blue);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .form-checkbox-group {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 10px;
+        }
+
+        .form-checkbox-item {
+            padding: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .form-checkbox-item input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 30px;
+        }
+
+        .select-all-btn {
+            background: #e3f2fd;
+            color: #1976d2;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="logo">
+            <img src="/images/logo.png" alt="All Your Computers">
+        </div>
+        <nav class="nav-menu">
+            <div class="nav-section">MAIN MENU</div>
+            <a href="/" class="nav-item">
+                <span class="nav-icon">📊</span>
+                Dashboard
+            </a>
+            <a href="/reports.html" class="nav-item">
+                <span class="nav-icon">📈</span>
+                Reports
+            </a>
+            <a href="/servers.html" class="nav-item">
+                <span class="nav-icon">🖥️</span>
+                Servers
+            </a>
+            <div class="nav-section" id="adminNavSection" style="display:none;">ADMIN</div>
+            <a href="/admin-users.html" class="nav-item" id="adminUsersLink" style="display:none;">
+                <span class="nav-icon">👥</span>
+                Users
+            </a>
+            <a href="/admin-companies.html" class="nav-item active" id="adminCompaniesLink" style="display:none;">
+                <span class="nav-icon">🏢</span>
+                Companies
+            </a>
+        </nav>
+        <div class="user-account-section">
+            <div class="user-email">Signed in as</div>
+            <div id="userInfo" class="user-email-value">Loading...</div>
+            <button id="logoutBtn" class="logout-btn" onclick="logout()">
+                <span class="logout-icon">🚪</span>
+                <span>Logout</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div id="companySwitcher"></div>
+
+        <div class="dashboard-content">
+            <div class="welcome-section">
+                <h1>Company Management</h1>
+                <p class="subtitle">Create and manage companies and their data source mappings.</p>
+            </div>
+
+            <button class="btn-add-company" onclick="openCreateCompanyModal()">
+                + Add New Company
+            </button>
+
+            <div id="companiesGrid" class="companies-grid">
+                <p>Loading companies...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create/Edit Company Modal -->
+    <div id="companyModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header" id="modalTitle">Create New Company</div>
+
+            <div class="form-group">
+                <label class="form-label">Company Name*</label>
+                <input type="text" id="companyName" class="form-input" placeholder="Acme Corporation" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Logo URL</label>
+                <input type="url" id="companyLogoUrl" class="form-input" placeholder="https://example.com/logo.png">
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn btn-primary" onclick="saveCompany()">Save</button>
+                <button class="btn btn-secondary" onclick="closeCompanyModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Manage HaloPSA Clients Modal -->
+    <div id="haloPSAModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">Manage HaloPSA Clients</div>
+            <p style="color: #666; font-size: 14px; margin-bottom: 20px;">
+                Select which HaloPSA clients belong to <strong id="haloPSACompanyName"></strong>
+            </p>
+
+            <button class="select-all-btn" onclick="toggleSelectAllClients()">Toggle Select All</button>
+
+            <div class="form-group">
+                <div id="haloPSACheckboxes" class="form-checkbox-group">
+                    <p>Loading clients...</p>
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn btn-primary" onclick="saveHaloPSAMappings()">Save Mappings</button>
+                <button class="btn btn-secondary" onclick="closeHaloPSAModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Manage NinjaOne Orgs Modal (placeholder for now) -->
+    <div id="ninjaOneModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">Manage NinjaOne Organizations</div>
+            <p style="color: #666; font-size: 14px; margin-bottom: 20px;">
+                NinjaOne organization mapping - coming soon
+            </p>
+
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeNinjaOneModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/admin-companies.js"></script>
+</body>
+</html>

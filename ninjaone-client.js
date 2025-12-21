@@ -268,6 +268,7 @@ async function getServers() {
       return {
         id: device.id,
         name: device.systemName || device.dnsName || 'Unknown',
+        organizationId: device.organizationId,
         clientName: orgMap.get(device.organizationId) || 'Unknown Client',
         status: device.offline === false ? 'ONLINE' : 'OFFLINE',
         lastContact: lastContactISO,
@@ -422,6 +423,7 @@ async function getServerDetails(deviceId) {
     return {
       id: device.id,
       name: device.systemName || device.dnsName || 'Unknown',
+      organizationId: device.organizationId,
       clientName: orgMap.get(device.organizationId) || 'Unknown Client',
       status: device.offline === false ? 'ONLINE' : 'OFFLINE',
       lastContact: lastContactISO,
