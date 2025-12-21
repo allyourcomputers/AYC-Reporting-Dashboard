@@ -8,7 +8,17 @@ let userProfile = null;
  */
 async function loadUserProfile() {
   try {
-    const token = localStorage.getItem('supabase.auth.token');
+    // Get Supabase session from localStorage
+    const authData = localStorage.getItem('sb-supabase-auth-token');
+    if (!authData) {
+      window.location.href = '/login';
+      return;
+    }
+
+    // Parse the auth data and extract access token
+    const session = JSON.parse(authData);
+    const token = session.access_token;
+
     if (!token) {
       window.location.href = '/login';
       return;
@@ -28,7 +38,7 @@ async function loadUserProfile() {
 
     if (!response.ok) {
       if (response.status === 401) {
-        localStorage.removeItem('supabase.auth.token');
+        localStorage.removeItem('sb-supabase-auth-token');
         window.location.href = '/login';
         return;
       }
@@ -133,7 +143,9 @@ function renderCompanySwitcher() {
  */
 async function switchCompany(companyId) {
   try {
-    const token = localStorage.getItem('supabase.auth.token');
+    const authData = localStorage.getItem('sb-supabase-auth-token');
+    const session = JSON.parse(authData);
+    const token = session.access_token;
 
     const response = await fetch('/api/profile/switch-company', {
       method: 'POST',
@@ -161,7 +173,9 @@ async function switchCompany(companyId) {
  */
 async function stopImpersonation() {
   try {
-    const token = localStorage.getItem('supabase.auth.token');
+    const authData = localStorage.getItem('sb-supabase-auth-token');
+    const session = JSON.parse(authData);
+    const token = session.access_token;
 
     const response = await fetch('/api/profile/stop-impersonation', {
       method: 'POST',
@@ -203,7 +217,7 @@ function updateAdminNavigation() {
  * Logout user
  */
 function logout() {
-  localStorage.removeItem('supabase.auth.token');
+  localStorage.removeItem('sb-supabase-auth-token');
   window.location.href = '/login';
 }
 
