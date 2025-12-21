@@ -164,6 +164,7 @@ router.post('/impersonate/:targetUserId', async (req, res) => {
 
     // Use the database function to start impersonation
     const { data, error } = await supabase.rpc('start_impersonation', {
+      admin_user_id: adminUserId,
       target_user_id: targetUserId
     });
 
@@ -205,7 +206,9 @@ router.post('/stop-impersonation', async (req, res) => {
     const userId = req.user.id;
 
     // Use the database function to stop impersonation
-    const { data, error } = await supabase.rpc('stop_impersonation');
+    const { data, error } = await supabase.rpc('stop_impersonation', {
+      admin_user_id: userId
+    });
 
     if (error) {
       logger.error('Failed to stop impersonation', { error, userId });
