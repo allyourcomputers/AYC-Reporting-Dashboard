@@ -332,15 +332,25 @@
             return date.toLocaleString();
         }
 
-        // Format uptime in days
+        // Format uptime in days, hours, and minutes
         function formatUptime(days) {
             if (!days) return 'N/A';
             const d = parseFloat(days);
+
             if (d < 1) {
-                const hours = Math.floor(d * 24);
-                return `${hours} hours`;
+                // Less than a day: show hours and minutes
+                const totalMinutes = Math.floor(d * 24 * 60);
+                const hours = Math.floor(totalMinutes / 60);
+                const minutes = totalMinutes % 60;
+                return `${hours} hours ${minutes} minutes`;
+            } else {
+                // One day or more: show days, hours, and minutes
+                const totalMinutes = Math.floor(d * 24 * 60);
+                const daysPart = Math.floor(totalMinutes / (24 * 60));
+                const hoursPart = Math.floor((totalMinutes % (24 * 60)) / 60);
+                const minutesPart = totalMinutes % 60;
+                return `${daysPart} days ${hoursPart} hours ${minutesPart} minutes`;
             }
-            return `${Math.floor(d)} days`;
         }
 
         // Get severity class
