@@ -4,6 +4,39 @@
 let userProfile = null;
 
 /**
+ * Load cached logo immediately on page load to prevent flickering
+ */
+function loadCachedLogo() {
+  const cachedLogoData = localStorage.getItem('company-logo-cache');
+  if (cachedLogoData) {
+    try {
+      const { logoUrl, companyName } = JSON.parse(cachedLogoData);
+      const logoImg = document.querySelector('.sidebar .logo img');
+      if (logoImg && logoUrl) {
+        logoImg.src = logoUrl;
+        logoImg.alt = companyName || 'Company Logo';
+      }
+    } catch (error) {
+      console.error('Error loading cached logo:', error);
+    }
+  }
+}
+
+/**
+ * Cache the current company logo for instant loading on next page load
+ */
+function cacheCompanyLogo(logoUrl, companyName) {
+  try {
+    localStorage.setItem('company-logo-cache', JSON.stringify({
+      logoUrl: logoUrl || '/images/logo.png',
+      companyName: companyName || 'Company Dashboard'
+    }));
+  } catch (error) {
+    console.error('Error caching logo:', error);
+  }
+}
+
+/**
  * Load and display user profile with company switcher
  */
 async function loadUserProfile() {
@@ -39,6 +72,7 @@ async function loadUserProfile() {
     if (!response.ok) {
       if (response.status === 401) {
         localStorage.removeItem('sb-supabase-auth-token');
+        localStorage.removeItem('company-logo-cache');
         window.location.href = '/login';
         return;
       }
@@ -95,9 +129,13 @@ function updateSidebar() {
     if (activeCompany && activeCompany.logoUrl) {
       logoImg.src = activeCompany.logoUrl;
       logoImg.alt = activeCompany.name;
+      // Cache logo for next page load
+      cacheCompanyLogo(activeCompany.logoUrl, activeCompany.name);
     } else {
       logoImg.src = '/images/logo.png';
       logoImg.alt = 'Company Dashboard';
+      // Cache default logo
+      cacheCompanyLogo('/images/logo.png', 'Company Dashboard');
     }
   }
 
@@ -242,8 +280,12 @@ function updateAdminNavigation() {
  */
 function logout() {
   localStorage.removeItem('sb-supabase-auth-token');
+  localStorage.removeItem('company-logo-cache');
   window.location.href = '/login';
 }
+
+// Load cached logo immediately to prevent flickering
+loadCachedLogo();
 
 // Auto-load profile when script loads
 if (document.readyState === 'loading') {
