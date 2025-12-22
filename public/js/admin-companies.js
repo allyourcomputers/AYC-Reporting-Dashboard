@@ -1,6 +1,7 @@
 // Admin Companies Management
 let companies = [];
 let availableClients = [];
+let availableNinjaOneOrgs = [];
 let editingCompanyId = null;
 let managingCompanyId = null;
 
@@ -8,6 +9,7 @@ async function init() {
   await initAuth();
   await loadCompanies();
   await loadAvailableClients();
+  await loadAvailableNinjaOneOrgs();
 }
 
 /**
@@ -63,6 +65,33 @@ async function loadAvailableClients() {
     availableClients = data.clients;
   } catch (error) {
     console.error('Error loading clients:', error);
+  }
+}
+
+/**
+ * Load available NinjaOne organizations
+ */
+async function loadAvailableNinjaOneOrgs() {
+  try {
+    const authData = localStorage.getItem('sb-supabase-auth-token');
+    const session = JSON.parse(authData);
+    const token = session.access_token;
+
+    const response = await fetch('/api/admin/companies/available-ninjaone-orgs', {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to load NinjaOne organizations');
+    }
+
+    const data = await response.json();
+    availableNinjaOneOrgs = data.organizations || [];
+  } catch (error) {
+    console.error('Error loading NinjaOne organizations:', error);
   }
 }
 
@@ -438,10 +467,19 @@ async function saveHaloPSAMappings() {
 }
 
 /**
- * Open NinjaOne mappings modal (placeholder)
+ * Open NinjaOne mappings modal
  */
 function openNinjaOneModal(companyId) {
+  const company = companies.find(c => c.id === companyId);
+  if (!company) return;
+
   managingCompanyId = companyId;
+  document.getElementById('ninjaOneCompanyName').textContent = company.name;
+
+  // Render checkboxes with current mappings selected
+  const selectedOrgIds = company.ninjaOneOrgs.map(org => org.id);
+  renderNinjaOneCheckboxes(selectedOrgIds);
+
   document.getElementById('ninjaOneModal').classList.add('active');
 }
 
@@ -451,6 +489,87 @@ function openNinjaOneModal(companyId) {
 function closeNinjaOneModal() {
   document.getElementById('ninjaOneModal').classList.remove('active');
   managingCompanyId = null;
+}
+
+/**
+ * Render NinjaOne organization checkboxes
+ */
+function renderNinjaOneCheckboxes(selectedIds = []) {
+  const container = document.getElementById('ninjaOneCheckboxes');
+
+  if (availableNinjaOneOrgs.length === 0) {
+    container.innerHTML = '<p>No NinjaOne organizations available.</p>';
+    return;
+  }
+
+  container.innerHTML = availableNinjaOneOrgs.map(org => `
+    <div class="form-checkbox-item">
+      <input
+        type="checkbox"
+        id="ninjaorg-${org.id}"
+        value="${org.id}"
+        data-name="${org.name}"
+        ${selectedIds.includes(org.id) ? 'checked' : ''}
+      >
+      <label for="ninjaorg-${org.id}">${org.name}</label>
+    </div>
+  `).join('');
+}
+
+/**
+ * Toggle select all NinjaOne orgs
+ */
+function toggleSelectAllNinjaOneOrgs() {
+  const checkboxes = document.querySelectorAll('#ninjaOneCheckboxes input[type="checkbox"]');
+  const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+
+  checkboxes.forEach(cb => {
+    cb.checked = !allChecked;
+  });
+}
+
+/**
+ * Get selected NinjaOne organizations
+ */
+function getSelectedNinjaOneOrgs() {
+  const checkboxes = document.querySelectorAll('#ninjaOneCheckboxes input[type="checkbox"]:checked');
+  return Array.from(checkboxes).map(cb => ({
+    id: parseInt(cb.value),
+    name: cb.getAttribute('data-name')
+  }));
+}
+
+/**
+ * Save NinjaOne mappings
+ */
+async function saveNinjaOneMappings() {
+  try {
+    const organizations = getSelectedNinjaOneOrgs();
+    const authData = localStorage.getItem('sb-supabase-auth-token');
+    const session = JSON.parse(authData);
+    const token = session.access_token;
+
+    const response = await fetch(`/api/admin/companies/${managingCompanyId}/ninjaone-orgs`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ organizations })
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to save mappings');
+    }
+
+    alert('NinjaOne organization mappings saved successfully');
+    closeNinjaOneModal();
+    await loadCompanies();
+  } catch (error) {
+    console.error('Error saving NinjaOne mappings:', error);
+    alert('Error: ' + error.message);
+  }
 }
 
 // Initialize on page load

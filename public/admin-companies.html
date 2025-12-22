@@ -319,16 +319,25 @@
         </div>
     </div>
 
-    <!-- Manage NinjaOne Orgs Modal (placeholder for now) -->
+    <!-- Manage NinjaOne Orgs Modal -->
     <div id="ninjaOneModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">Manage NinjaOne Organizations</div>
             <p style="color: #666; font-size: 14px; margin-bottom: 20px;">
-                NinjaOne organization mapping - coming soon
+                Select which NinjaOne organizations belong to <strong id="ninjaOneCompanyName"></strong>
             </p>
 
+            <button class="select-all-btn" onclick="toggleSelectAllNinjaOneOrgs()">Toggle Select All</button>
+
+            <div class="form-group">
+                <div id="ninjaOneCheckboxes" class="form-checkbox-group">
+                    <p>Loading organizations...</p>
+                </div>
+            </div>
+
             <div class="modal-actions">
-                <button class="btn btn-secondary" onclick="closeNinjaOneModal()">Close</button>
+                <button class="btn btn-primary" onclick="saveNinjaOneMappings()">Save Mappings</button>
+                <button class="btn btn-secondary" onclick="closeNinjaOneModal()">Cancel</button>
             </div>
         </div>
     </div>
