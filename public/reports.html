@@ -207,7 +207,23 @@
 <body>
     <div class="sidebar">
         <div class="logo">
-            <img src="/images/logo.png" alt="All Your Computers">
+            <img id="companyLogo" src="/images/logo.png" alt="All Your Computers">
+            <script>
+                // Load cached logo immediately to prevent flicker
+                (function() {
+                    try {
+                        const cached = localStorage.getItem('company-logo-cache');
+                        if (cached) {
+                            const { logoUrl, companyName } = JSON.parse(cached);
+                            const img = document.getElementById('companyLogo');
+                            if (img && logoUrl) {
+                                img.src = logoUrl;
+                                img.alt = companyName || 'Company Logo';
+                            }
+                        }
+                    } catch (e) {}
+                })();
+            </script>
         </div>
         <nav class="nav-menu">
             <div class="nav-section">MAIN MENU</div>
