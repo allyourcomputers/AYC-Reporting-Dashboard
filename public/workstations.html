@@ -46,139 +46,6 @@
             cursor: not-allowed;
         }
 
-        .workstations-grid {
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-
-        .workstation-box {
-            background: white;
-            border-radius: 12px;
-            padding: 25px 20px;
-            text-align: center;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            transition: transform 0.2s, box-shadow 0.2s;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .workstation-box::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 6px;
-        }
-
-        .workstation-box.online::before {
-            background: #28a745;
-        }
-
-        .workstation-box.offline::before {
-            background: #dc3545;
-        }
-
-        .workstation-box:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        }
-
-        .workstation-icon {
-            font-size: 64px;
-            margin-bottom: 15px;
-            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .workstation-icon img {
-            width: 64px;
-            height: 64px;
-            object-fit: contain;
-        }
-
-        .workstation-name {
-            font-size: 16px;
-            font-weight: 700;
-            color: #333;
-            margin-bottom: 8px;
-            word-break: break-word;
-        }
-
-        .client-name {
-            font-size: 13px;
-            color: #666;
-            margin-bottom: 12px;
-            word-break: break-word;
-        }
-
-        .workstation-status {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: 600;
-            text-transform: uppercase;
-            margin-top: 8px;
-        }
-
-        .workstation-status.online {
-            background: #d4edda;
-            color: #155724;
-        }
-
-        .workstation-status.offline {
-            background: #f8d7da;
-            color: #721c24;
-        }
-
-        .patch-info {
-            margin-top: 10px;
-            font-size: 11px;
-            color: #999;
-        }
-
-        .patch-count {
-            display: inline-block;
-            margin: 0 4px;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-weight: 600;
-        }
-
-        .patch-count.has-patches {
-            background: #fff3cd;
-            color: #856404;
-        }
-
-        .patch-count.no-patches {
-            background: #d4edda;
-            color: #155724;
-        }
-
-        .loading-state, .error-state, .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: #999;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        }
-
-        .error-state {
-            color: #dc3545;
-            background: #fff5f5;
-        }
-
-        .state-icon {
-            font-size: 48px;
-            margin-bottom: 20px;
-        }
-
         .workstations-table-container {
             margin-top: 30px;
         }
@@ -217,45 +84,7 @@
             background: #f9f9f9;
         }
 
-        @media (max-width: 1400px) {
-            .workstations-grid {
-                grid-template-columns: repeat(4, 1fr);
-            }
-        }
-
-        @media (max-width: 1200px) {
-            .workstations-grid {
-                grid-template-columns: repeat(3, 1fr);
-            }
-        }
-
         @media (max-width: 768px) {
-            .workstations-grid {
-                grid-template-columns: repeat(2, 1fr);
-                gap: 15px;
-            }
-
-            .workstation-box {
-                padding: 20px 15px;
-            }
-
-            .workstation-icon {
-                font-size: 48px;
-            }
-
-            .workstation-icon img {
-                width: 48px;
-                height: 48px;
-            }
-
-            .workstation-name {
-                font-size: 14px;
-            }
-
-            .client-name {
-                font-size: 12px;
-            }
-
             .workstations-table {
                 font-size: 12px;
             }
@@ -327,17 +156,8 @@
                 <button id="refreshBtn" class="refresh-btn">🔄 Refresh Now</button>
             </div>
 
-            <div id="workstationsGrid" class="workstations-grid">
-                <div class="loading-state">
-                    <div class="state-icon">
-                        <div class="spinner"></div>
-                    </div>
-                    <div>Loading workstation data...</div>
-                </div>
-            </div>
-
             <div class="card">
-                <h3>Workstation Details</h3>
+                <h3>Workstations</h3>
                 <div class="workstations-table-container">
                     <table class="workstations-table">
                         <thead>
@@ -421,46 +241,6 @@
             return 'patch-critical';
         }
 
-        // Update workstations grid
-        function updateWorkstationsGrid(workstations) {
-            const grid = document.getElementById('workstationsGrid');
-
-            if (!workstations || workstations.length === 0) {
-                grid.innerHTML = `
-                    <div class="empty-state">
-                        <div class="state-icon">💻</div>
-                        <div>No workstations found</div>
-                        <div style="font-size: 12px; margin-top: 10px; color: #999;">
-                            Check that your workstations have the correct role in NinjaOne<br>
-                            (Windows Desktop, Windows Laptop, Mac Desktop, or Mac Laptop)
-                        </div>
-                    </div>
-                `;
-                return;
-            }
-
-            grid.innerHTML = workstations.map(workstation => {
-                const statusClass = workstation.status === 'ONLINE' ? 'online' : 'offline';
-                const icon = getOSIcon(workstation.os.type);
-                const totalPatches = workstation.patches.osPending + workstation.patches.softwarePending;
-                const patchClass = totalPatches > 0 ? 'has-patches' : 'no-patches';
-
-                return `
-                    <a href="/workstation-details.html?id=${workstation.id}" class="workstation-box ${statusClass}" style="text-decoration: none; color: inherit;">
-                        <div class="workstation-icon">${icon}</div>
-                        <div class="workstation-name">${workstation.name}</div>
-                        <div class="client-name">${workstation.clientName}</div>
-                        <div class="workstation-status ${statusClass}">
-                            ${workstation.status === 'ONLINE' ? '✓ Online' : '✗ Offline'}
-                        </div>
-                        <div class="patch-info">
-                            Patches: <span class="patch-count ${patchClass}">${totalPatches}</span>
-                        </div>
-                    </a>
-                `;
-            }).join('');
-        }
-
         // Update workstations table
         function updateWorkstationsTable(workstations) {
             const tbody = document.getElementById('workstationsTableBody');
@@ -477,9 +257,20 @@
                 return;
             }
 
-            tbody.innerHTML = workstations.map(workstation => `
+            // Sort by company name (clientName) then by device name
+            const sortedWorkstations = [...workstations].sort((a, b) => {
+                const companyCompare = a.clientName.localeCompare(b.clientName);
+                if (companyCompare !== 0) return companyCompare;
+                return a.name.localeCompare(b.name);
+            });
+
+            tbody.innerHTML = sortedWorkstations.map(workstation => `
                 <tr>
-                    <td><strong>${workstation.name}</strong></td>
+                    <td>
+                        <a href="/workstation-details.html?id=${workstation.id}" style="text-decoration: none; color: var(--brand-blue); font-weight: 600;">
+                            ${workstation.name}
+                        </a>
+                    </td>
                     <td>${workstation.clientName}</td>
                     <td>
                         <span class="status-badge ${workstation.status === 'ONLINE' ? 'status-online' : 'status-offline'}">
@@ -516,7 +307,6 @@
                 workstationsData = await response.json();
 
                 // Update UI
-                updateWorkstationsGrid(workstationsData.workstations);
                 updateWorkstationsTable(workstationsData.workstations);
 
                 // Update last updated time
@@ -529,16 +319,20 @@
 
             } catch (error) {
                 console.error('Error loading workstations data:', error);
-                const grid = document.getElementById('workstationsGrid');
-                grid.innerHTML = `
-                    <div class="error-state">
-                        <div class="state-icon">⚠️</div>
-                        <div>Failed to load workstation data</div>
-                        <div style="margin-top: 10px; font-size: 13px;">${error.message}</div>
-                        <div style="margin-top: 15px;">
-                            <button onclick="loadWorkstationsData()" class="refresh-btn">Retry</button>
-                        </div>
-                    </div>
+                const tbody = document.getElementById('workstationsTableBody');
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="8" style="text-align: center; padding: 40px;">
+                            <div class="error-state">
+                                <div class="state-icon">⚠️</div>
+                                <div>Failed to load workstation data</div>
+                                <div style="margin-top: 10px; font-size: 13px;">${error.message}</div>
+                                <div style="margin-top: 15px;">
+                                    <button onclick="loadWorkstationsData()" class="refresh-btn">Retry</button>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
                 `;
             } finally {
                 refreshBtn.disabled = false;
