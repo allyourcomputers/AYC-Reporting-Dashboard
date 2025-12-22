@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Server Details - Company Dashboard</title>
+    <title>Workstation Details - Company Dashboard</title>
     <link rel="stylesheet" href="/css/shared.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="/js/auth.js"></script>
@@ -30,7 +30,7 @@
             border-color: #bbb;
         }
 
-        .server-header {
+        .workstation-header {
             background: white;
             border-radius: 12px;
             padding: 30px;
@@ -38,39 +38,39 @@
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
 
-        .server-header-top {
+        .workstation-header-top {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
             margin-bottom: 20px;
         }
 
-        .server-title {
+        .workstation-title {
             display: flex;
             align-items: center;
             gap: 20px;
         }
 
-        .server-title-icon {
+        .workstation-title-icon {
             font-size: 64px;
             filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
             display: flex;
             align-items: center;
         }
 
-        .server-title-icon img {
+        .workstation-title-icon img {
             width: 64px;
             height: 64px;
             object-fit: contain;
         }
 
-        .server-title-text h1 {
+        .workstation-title-text h1 {
             margin: 0 0 8px 0;
             font-size: 28px;
             color: #333;
         }
 
-        .server-title-text .client {
+        .workstation-title-text .client {
             font-size: 16px;
             color: #666;
         }
@@ -92,7 +92,7 @@
             opacity: 0.9;
         }
 
-        .server-status-bar {
+        .workstation-status-bar {
             display: flex;
             gap: 20px;
             padding-top: 20px;
@@ -251,12 +251,12 @@
                 grid-template-columns: 1fr;
             }
 
-            .server-header-top {
+            .workstation-header-top {
                 flex-direction: column;
                 gap: 20px;
             }
 
-            .server-status-bar {
+            .workstation-status-bar {
                 flex-direction: column;
             }
         }
@@ -277,17 +277,17 @@
                 <span class="nav-icon">📈</span>
                 Reports
             </a>
-            <a href="/servers.html" class="nav-item active">
+            <a href="/servers.html" class="nav-item">
                 <span class="nav-icon">🖥️</span>
                 Servers
             </a>
-            <a href="/workstations.html" class="nav-item">
+            <a href="/workstations.html" class="nav-item active">
                 <span class="nav-icon">💻</span>
                 Workstations
             </a>
         </nav>
         <div class="user-account-section">
-            
+
             <div id="userInfo" class="user-email-value">Loading...</div>
             <button id="logoutBtn" class="logout-btn">
                 <span class="logout-icon">🚪</span>
@@ -298,35 +298,37 @@
 
     <div class="main-content">
         <div class="dashboard-content">
-            <a href="/servers.html" class="back-button">
-                ← Back to Servers
+            <a href="/workstations.html" class="back-button">
+                ← Back to Workstations
             </a>
 
-            <div id="serverContent">
+            <div id="workstationContent">
                 <div class="loading-state">
                     <div class="state-icon">
                         <div class="spinner"></div>
                     </div>
-                    <div>Loading server details...</div>
+                    <div>Loading workstation details...</div>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        // Get server ID from URL
+        // Get workstation ID from URL
         const urlParams = new URLSearchParams(window.location.search);
-        const serverId = urlParams.get('id');
+        const workstationId = urlParams.get('id');
 
         // Get OS icon based on type
         function getOSIcon(osType) {
             switch(osType) {
                 case 'windows':
                     return '<img src="https://upload.wikimedia.org/wikipedia/commons/0/0a/Unofficial_Windows_logo_variant_-_2002%E2%80%932012_%28Multicolored%29.svg" alt="Windows">';
+                case 'mac':
+                    return '<img src="https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg" alt="Mac">';
                 case 'linux':
                     return '<img src="https://upload.wikimedia.org/wikipedia/commons/3/35/Tux.svg" alt="Linux">';
                 default:
-                    return '🖥️';
+                    return '💻';
             }
         }
 
@@ -368,30 +370,30 @@
             return 'severity-low';
         }
 
-        // Render server details
-        function renderServerDetails(server) {
-            const icon = getOSIcon(server.os.type);
-            const statusClass = server.status === 'ONLINE' ? 'status-online' : 'status-offline';
-            const statusText = server.status === 'ONLINE' ? '✓ Online' : '✗ Offline';
+        // Render workstation details
+        function renderWorkstationDetails(workstation) {
+            const icon = getOSIcon(workstation.os.type);
+            const statusClass = workstation.status === 'ONLINE' ? 'status-online' : 'status-offline';
+            const statusText = workstation.status === 'ONLINE' ? '✓ Online' : '✗ Offline';
 
-            const ninjaLinkHtml = server.ninjaoneUrl ?
-                `<a href="${server.ninjaoneUrl}" target="_blank" class="ninjaone-link">
+            const ninjaLinkHtml = workstation.ninjaoneUrl ?
+                `<a href="${workstation.ninjaoneUrl}" target="_blank" class="ninjaone-link">
                     🚀 Open in NinjaOne
                 </a>` : '';
 
             const content = `
-                <div class="server-header">
-                    <div class="server-header-top">
-                        <div class="server-title">
-                            <div class="server-title-icon">${icon}</div>
-                            <div class="server-title-text">
-                                <h1>${server.name}</h1>
-                                <div class="client">${server.clientName}</div>
+                <div class="workstation-header">
+                    <div class="workstation-header-top">
+                        <div class="workstation-title">
+                            <div class="workstation-title-icon">${icon}</div>
+                            <div class="workstation-title-text">
+                                <h1>${workstation.name}</h1>
+                                <div class="client">${workstation.clientName}</div>
                             </div>
                         </div>
                         ${ninjaLinkHtml}
                     </div>
-                    <div class="server-status-bar">
+                    <div class="workstation-status-bar">
                         <div class="status-item">
                             <div class="status-item-label">Status</div>
                             <div class="status-item-value">
@@ -400,25 +402,25 @@
                         </div>
                         <div class="status-item">
                             <div class="status-item-label">Uptime</div>
-                            <div class="status-item-value">${formatUptime(server.uptime)}</div>
+                            <div class="status-item-value">${formatUptime(workstation.uptime)}</div>
                         </div>
                         <div class="status-item">
                             <div class="status-item-label">Last Contact</div>
-                            <div class="status-item-value">${formatDateTime(server.lastContact)}</div>
+                            <div class="status-item-value">${formatDateTime(workstation.lastContact)}</div>
                         </div>
                         <div class="status-item">
                             <div class="status-item-label">OS Patches</div>
                             <div class="status-item-value">
-                                <span class="patch-pill ${server.patches.osPending > 0 ? 'patch-warning' : 'patch-none'}">
-                                    ${server.patches.osPending}
+                                <span class="patch-pill ${workstation.patches.osPending > 0 ? 'patch-warning' : 'patch-none'}">
+                                    ${workstation.patches.osPending}
                                 </span>
                             </div>
                         </div>
                         <div class="status-item">
                             <div class="status-item-label">Software Patches</div>
                             <div class="status-item-value">
-                                <span class="patch-pill ${server.patches.softwarePending > 0 ? 'patch-warning' : 'patch-none'}">
-                                    ${server.patches.softwarePending}
+                                <span class="patch-pill ${workstation.patches.softwarePending > 0 ? 'patch-warning' : 'patch-none'}">
+                                    ${workstation.patches.softwarePending}
                                 </span>
                             </div>
                         </div>
@@ -430,15 +432,15 @@
                         <h3>Operating System</h3>
                         <div class="detail-row">
                             <div class="detail-label">OS Name</div>
-                            <div class="detail-value">${server.os.name}</div>
+                            <div class="detail-value">${workstation.os.name}</div>
                         </div>
                         <div class="detail-row">
                             <div class="detail-label">Version</div>
-                            <div class="detail-value">${server.os.version || 'N/A'}</div>
+                            <div class="detail-value">${workstation.os.version || 'N/A'}</div>
                         </div>
                         <div class="detail-row">
                             <div class="detail-label">Type</div>
-                            <div class="detail-value">${server.os.type}</div>
+                            <div class="detail-value">${workstation.os.type}</div>
                         </div>
                     </div>
 
@@ -446,28 +448,28 @@
                         <h3>Hardware Information</h3>
                         <div class="detail-row">
                             <div class="detail-label">Manufacturer</div>
-                            <div class="detail-value">${server.details?.manufacturer || 'N/A'}</div>
+                            <div class="detail-value">${workstation.details?.manufacturer || 'N/A'}</div>
                         </div>
                         <div class="detail-row">
                             <div class="detail-label">Model</div>
-                            <div class="detail-value">${server.details?.model || 'N/A'}</div>
+                            <div class="detail-value">${workstation.details?.model || 'N/A'}</div>
                         </div>
                         <div class="detail-row">
                             <div class="detail-label">Serial Number</div>
-                            <div class="detail-value">${server.details?.serialNumber || 'N/A'}</div>
+                            <div class="detail-value">${workstation.details?.serialNumber || 'N/A'}</div>
                         </div>
                         <div class="detail-row">
                             <div class="detail-label">BIOS Version</div>
-                            <div class="detail-value">${server.details?.biosVersion || 'N/A'}</div>
+                            <div class="detail-value">${workstation.details?.biosVersion || 'N/A'}</div>
                         </div>
                     </div>
                 </div>
 
-                ${renderPatchesList('OS Patches', server.patches.osPendingList)}
-                ${renderPatchesList('Software Patches', server.patches.softwarePendingList)}
+                ${renderPatchesList('OS Patches', workstation.patches.osPendingList)}
+                ${renderPatchesList('Software Patches', workstation.patches.softwarePendingList)}
             `;
 
-            document.getElementById('serverContent').innerHTML = content;
+            document.getElementById('workstationContent').innerHTML = content;
         }
 
         // Render patches list
@@ -533,15 +535,15 @@
             `;
         }
 
-        // Load server details
-        async function loadServerDetails() {
-            if (!serverId) {
-                document.getElementById('serverContent').innerHTML = `
+        // Load workstation details
+        async function loadWorkstationDetails() {
+            if (!workstationId) {
+                document.getElementById('workstationContent').innerHTML = `
                     <div class="error-state">
                         <div class="state-icon">⚠️</div>
-                        <div>No server ID provided</div>
+                        <div>No workstation ID provided</div>
                         <div style="margin-top: 15px;">
-                            <a href="/servers.html" class="back-button">← Back to Servers</a>
+                            <a href="/workstations.html" class="back-button">← Back to Workstations</a>
                         </div>
                     </div>
                 `;
@@ -549,22 +551,22 @@
             }
 
             try {
-                const response = await authFetch(`/api/servers/${serverId}`);
+                const response = await authFetch(`/api/workstations/${workstationId}`);
                 if (!response) return; // Auth failed, redirected to login
-                if (!response.ok) throw new Error('Failed to load server details');
+                if (!response.ok) throw new Error('Failed to load workstation details');
 
-                const server = await response.json();
-                renderServerDetails(server);
+                const workstation = await response.json();
+                renderWorkstationDetails(workstation);
 
             } catch (error) {
-                console.error('Error loading server details:', error);
-                document.getElementById('serverContent').innerHTML = `
+                console.error('Error loading workstation details:', error);
+                document.getElementById('workstationContent').innerHTML = `
                     <div class="error-state">
                         <div class="state-icon">⚠️</div>
-                        <div>Failed to load server details</div>
+                        <div>Failed to load workstation details</div>
                         <div style="margin-top: 10px; font-size: 13px;">${error.message}</div>
                         <div style="margin-top: 15px;">
-                            <button onclick="loadServerDetails()" class="refresh-btn">Retry</button>
+                            <button onclick="loadWorkstationDetails()" class="refresh-btn">Retry</button>
                         </div>
                     </div>
                 `;
@@ -580,8 +582,8 @@
             // Setup logout button and user info
             setupLogoutButton();
 
-            // Load server details
-            await loadServerDetails();
+            // Load workstation details
+            await loadWorkstationDetails();
         }
 
         // Load page when DOM is ready

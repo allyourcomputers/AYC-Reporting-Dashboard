@@ -736,6 +736,79 @@ app.get('/api/servers/:deviceId', requireAuth, async (req, res) => {
   }
 });
 
+// Get all workstations with monitoring data (filtered by company for customers)
+app.get('/api/workstations', requireAuth, injectCompanyContext, async (req, res) => {
+  try {
+    const workstationsData = await ninjaOneClient.getWorkstations();
+
+    // If super admin and not impersonating, show all workstations
+    if (req.isSuperAdmin) {
+      return res.json(workstationsData);
+    }
+
+    // For customer users or impersonating super admins, filter by company NinjaOne orgs
+    if (req.activeCompanyId) {
+      // Get NinjaOne org IDs for this company
+      const { data: ninjaOneOrgs, error } = await supabase
+        .from('company_ninjaone_orgs')
+        .select('ninjaone_org_id')
+        .eq('company_id', req.activeCompanyId);
+
+      if (error) {
+        logger.error('Failed to fetch company NinjaOne orgs', { error, companyId: req.activeCompanyId });
+        return res.status(500).json({ error: 'Failed to fetch company organizations' });
+      }
+
+      const allowedOrgIds = ninjaOneOrgs.map(org => org.ninjaone_org_id);
+
+      // Filter workstations by organization ID
+      const filteredWorkstations = workstationsData.workstations.filter(workstation => {
+        return allowedOrgIds.length === 0 || allowedOrgIds.includes(workstation.organizationId);
+      });
+
+      return res.json({
+        ...workstationsData,
+        workstations: filteredWorkstations,
+        summary: {
+          ...workstationsData.summary,
+          totalWorkstations: filteredWorkstations.length,
+          onlineWorkstations: filteredWorkstations.filter(w => w.status === 'ONLINE').length,
+          offlineWorkstations: filteredWorkstations.filter(w => w.status === 'OFFLINE').length,
+          workstationsNeedingPatches: filteredWorkstations.filter(w =>
+            w.patches.osPending > 0 || w.patches.softwarePending > 0
+          ).length
+        }
+      });
+    }
+
+    // No company assigned, return empty result
+    res.json({
+      summary: {
+        totalWorkstations: 0,
+        onlineWorkstations: 0,
+        offlineWorkstations: 0,
+        workstationsNeedingPatches: 0
+      },
+      workstations: [],
+      lastUpdated: new Date().toISOString()
+    });
+  } catch (error) {
+    logger.error('Error fetching workstations:', error);
+    res.status(500).json({ error: 'Failed to fetch workstation data' });
+  }
+});
+
+// Get specific workstation details
+app.get('/api/workstations/:deviceId', requireAuth, async (req, res) => {
+  try {
+    const workstationData = await ninjaOneClient.getWorkstationDetails(req.params.deviceId);
+    res.json(workstationData);
+  } catch (error) {
+    logger.error('Error fetching workstation details:', error);
+    res.status(500).json({ error: 'Failed to fetch workstation details' });
+  }
+});
+
 // Global error handler for uncaught errors
 app.use((err, req, res, next) => {
   logger.error('Unhandled error in request', {

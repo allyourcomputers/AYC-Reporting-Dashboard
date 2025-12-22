@@ -472,8 +472,226 @@ async function getOrganizations() {
   }
 }
 
+/**
+ * Get all workstations with health and patch information
+ */
+async function getWorkstations() {
+  logger.info('Fetching workstation data from NinjaOne');
+
+  try {
+    // Fetch devices and organizations in parallel
+    const [allDevices, organizations] = await Promise.all([
+      ninjaRequest('/v2/devices'),
+      ninjaRequest('/v2/organizations').catch(err => {
+        logger.error('Failed to fetch organizations', { error: err.message });
+        return [];
+      })
+    ]);
+
+    logger.info(`Found ${allDevices.length} total devices`);
+
+    // Filter for workstations (Windows Desktop, Windows Laptop, Mac Desktop, Mac Laptop)
+    const devices = allDevices.filter(device => {
+      const nodeClass = (device.nodeClass || '').toLowerCase();
+      const nodeRole = (device.nodeRolePolicyName || device.roleName || '').toLowerCase();
+
+      return nodeRole.includes('windows desktop') ||
+             nodeRole.includes('windows laptop') ||
+             nodeRole.includes('mac desktop') ||
+             nodeRole.includes('mac laptop') ||
+             nodeClass.includes('windows desktop') ||
+             nodeClass.includes('windows laptop') ||
+             nodeClass.includes('mac desktop') ||
+             nodeClass.includes('mac laptop');
+    });
+
+    logger.info(`Found ${devices.length} workstations after filtering`);
+
+    // Create organization lookup map
+    const orgMap = new Map();
+    if (Array.isArray(organizations)) {
+      organizations.forEach(org => {
+        orgMap.set(org.id, org.name);
+      });
+    }
+
+    if (!devices || devices.length === 0) {
+      const emptyResult = {
+        summary: {
+          totalWorkstations: 0,
+          onlineWorkstations: 0,
+          offlineWorkstations: 0,
+          workstationsNeedingPatches: 0
+        },
+        workstations: [],
+        lastUpdated: new Date().toISOString()
+      };
+
+      return emptyResult;
+    }
+
+    // Get device IDs for queries
+    const deviceIds = devices.map(d => d.id);
+
+    // Fetch additional data in parallel
+    const [osData, computerSystemsData, osPatchData, softwarePatchData] = await Promise.all([
+      ninjaRequest('/v2/queries/operating-systems').catch(err => {
+        logger.error('Failed to fetch OS data', { error: err.message });
+        return { results: [] };
+      }),
+      ninjaRequest('/v2/queries/computer-systems').catch(err => {
+        logger.error('Failed to fetch computer systems data', { error: err.message });
+        return { results: [] };
+      }),
+      ninjaRequest('/v2/queries/os-patches').catch(err => {
+        logger.error('Failed to fetch OS patch data', { error: err.message });
+        return { results: [] };
+      }),
+      ninjaRequest('/v2/queries/software-patches').catch(err => {
+        logger.error('Failed to fetch software patch data', { error: err.message });
+        return { results: [] };
+      })
+    ]);
+
+    // Extract results arrays
+    const osResults = Array.isArray(osData) ? osData : (osData.results || []);
+    const computerSystemsResults = Array.isArray(computerSystemsData) ? computerSystemsData : (computerSystemsData.results || []);
+    const osPatchResults = Array.isArray(osPatchData) ? osPatchData : (osPatchData.results || []);
+    const softwarePatchResults = Array.isArray(softwarePatchData) ? softwarePatchData : (softwarePatchData.results || []);
+
+    // Create lookup maps
+    const osMap = new Map();
+    osResults.forEach(os => {
+      osMap.set(os.deviceId, os);
+    });
+
+    const computerSystemsMap = new Map();
+    computerSystemsResults.forEach(cs => {
+      computerSystemsMap.set(cs.deviceId, cs);
+    });
+
+    const osPatchMap = new Map();
+    osPatchResults.forEach(patch => {
+      if (!osPatchMap.has(patch.deviceId)) {
+        osPatchMap.set(patch.deviceId, []);
+      }
+      osPatchMap.get(patch.deviceId).push(patch);
+    });
+
+    const softwarePatchMap = new Map();
+    softwarePatchResults.forEach(patch => {
+      if (!softwarePatchMap.has(patch.deviceId)) {
+        softwarePatchMap.set(patch.deviceId, []);
+      }
+      softwarePatchMap.get(patch.deviceId).push(patch);
+    });
+
+    // Transform and enrich device data
+    const workstations = devices.map(device => {
+      const os = osMap.get(device.id);
+      const computerSystem = computerSystemsMap.get(device.id);
+      const osPatches = osPatchMap.get(device.id) || [];
+      const softwarePatches = softwarePatchMap.get(device.id) || [];
+
+      // Count pending patches (status !== 'INSTALLED')
+      const osPending = osPatches.filter(p => p.status !== 'INSTALLED').length;
+      const softwarePending = softwarePatches.filter(p => p.status !== 'INSTALLED').length;
+
+      // Calculate uptime in days
+      let uptime = null;
+      if (os?.lastBootTime) {
+        const bootTime = new Date(os.lastBootTime * 1000);
+        uptime = (Date.now() - bootTime.getTime()) / (1000 * 60 * 60 * 24);
+      } else if (device.os?.lastBootTime) {
+        const bootTime = new Date(device.os.lastBootTime * 1000);
+        uptime = (Date.now() - bootTime.getTime()) / (1000 * 60 * 60 * 24);
+      } else if (computerSystem?.bootTime) {
+        const bootTime = new Date(computerSystem.bootTime * 1000);
+        uptime = (Date.now() - bootTime.getTime()) / (1000 * 60 * 60 * 24);
+      }
+
+      // Convert Unix timestamp to ISO string
+      let lastContactISO = null;
+      if (device.lastContact) {
+        const timestamp = device.lastContact * 1000;
+        lastContactISO = new Date(timestamp).toISOString();
+      }
+
+      // Determine OS type for icon
+      const osName = (os?.name || device.nodeClass || '').toLowerCase();
+      let osType = 'unknown';
+      if (osName.includes('windows')) {
+        osType = 'windows';
+      } else if (osName.includes('mac') || osName.includes('darwin')) {
+        osType = 'mac';
+      } else if (osName.includes('linux') || osName.includes('ubuntu') || osName.includes('centos') || osName.includes('debian')) {
+        osType = 'linux';
+      }
+
+      return {
+        id: device.id,
+        name: device.systemName || device.dnsName || 'Unknown',
+        organizationId: device.organizationId,
+        clientName: orgMap.get(device.organizationId) || 'Unknown Client',
+        status: device.offline === false ? 'ONLINE' : 'OFFLINE',
+        lastContact: lastContactISO,
+        uptime: uptime ? uptime.toFixed(1) : null,
+        os: {
+          name: os?.name || device.nodeClass || 'Unknown',
+          version: os?.version || '',
+          type: osType
+        },
+        patches: {
+          osPending,
+          softwarePending,
+          lastScan: device.lastPatchManagementRun || null
+        }
+      };
+    });
+
+    // Calculate summary statistics
+    const onlineWorkstations = workstations.filter(w => w.status === 'ONLINE').length;
+    const offlineWorkstations = workstations.filter(w => w.status === 'OFFLINE').length;
+    const workstationsNeedingPatches = workstations.filter(w =>
+      w.patches.osPending > 0 || w.patches.softwarePending > 0
+    ).length;
+
+    const result = {
+      summary: {
+        totalWorkstations: workstations.length,
+        onlineWorkstations,
+        offlineWorkstations,
+        workstationsNeedingPatches
+      },
+      workstations,
+      lastUpdated: new Date().toISOString()
+    };
+
+    logger.info('Successfully fetched workstation data', {
+      total: result.summary.totalWorkstations,
+      online: result.summary.onlineWorkstations,
+      needingPatches: result.summary.workstationsNeedingPatches
+    });
+
+    return result;
+  } catch (error) {
+    logger.error('Failed to fetch workstation data', { error: error.message });
+    throw new Error('Failed to fetch workstation data from NinjaOne');
+  }
+}
+
+/**
+ * Get detailed information for a specific workstation
+ */
+async function getWorkstationDetails(deviceId) {
+  // Workstations use the same detail structure as servers
+  return getServerDetails(deviceId);
+}
+
 module.exports = {
   getServers,
   getServerDetails,
-  getOrganizations
+  getOrganizations,
+  getWorkstations,
+  getWorkstationDetails
 };
