@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { supabase } = require('../middleware/company-context');
 const logger = require('../logger');
+const ninjaOneClient = require('../ninjaone-client');
 
 // Middleware to verify super admin access
 function requireSuperAdmin(req, res, next) {
@@ -355,85 +356,11 @@ router.post('/:companyId/ninjaone-orgs', requireSuperAdmin, async (req, res) => 
  */
 router.get('/available-ninjaone-orgs', requireSuperAdmin, async (req, res) => {
   try {
-    const { spawn } = require('child_process');
-
-    // Call the NinjaOne MCP server to get organizations
-    const mcpProcess = spawn('node', ['/Users/mjhorswood/NinjaOneMCP/dist/index.js'], {
-      env: {
-        ...process.env,
-        MCP_MODE: 'stdio',
-        NINJA_CLIENT_ID: process.env.NINJA_CLIENT_ID,
-        NINJA_CLIENT_SECRET: process.env.NINJA_CLIENT_SECRET,
-        NINJA_BASE_URL: process.env.NINJA_BASE_URL
-      }
-    });
-
-    let output = '';
-    let errorOutput = '';
-
-    mcpProcess.stdout.on('data', (data) => {
-      output += data.toString();
-    });
-
-    mcpProcess.stderr.on('data', (data) => {
-      errorOutput += data.toString();
-    });
-
-    // Send the request to get organizations
-    mcpProcess.stdin.write(JSON.stringify({
-      jsonrpc: '2.0',
-      id: 1,
-      method: 'tools/call',
-      params: {
-        name: 'get_organizations',
-        arguments: {
-          pageSize: 1000
-        }
-      }
-    }) + '\n');
-
-    mcpProcess.stdin.end();
-
-    mcpProcess.on('close', (code) => {
-      if (code !== 0) {
-        logger.error('NinjaOne MCP process failed', { code, stderr: errorOutput });
-        return res.status(500).json({ error: 'Failed to fetch NinjaOne organizations' });
-      }
-
-      try {
-        // Parse the MCP response
-        const lines = output.trim().split('\n');
-        let result = null;
-
-        for (const line of lines) {
-          try {
-            const parsed = JSON.parse(line);
-            if (parsed.id === 1 && parsed.result) {
-              result = parsed.result;
-              break;
-            }
-          } catch (e) {
-            // Skip invalid JSON lines
-          }
-        }
-
-        if (!result || !result.content || !result.content[0]) {
-          logger.error('Invalid NinjaOne response format', { output });
-          return res.status(500).json({ error: 'Invalid response from NinjaOne' });
-        }
-
-        const organizations = JSON.parse(result.content[0].text);
-
-        res.json({ organizations });
-      } catch (error) {
-        logger.error('Error parsing NinjaOne response', { error: error.message, output });
-        res.status(500).json({ error: 'Failed to parse NinjaOne response' });
-      }
-    });
-
+    const organizations = await ninjaOneClient.getOrganizations();
+    res.json({ organizations });
   } catch (error) {
     logger.error('Error fetching NinjaOne organizations', { error: error.message });
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: 'Failed to fetch NinjaOne organizations' });
   }
 });
 

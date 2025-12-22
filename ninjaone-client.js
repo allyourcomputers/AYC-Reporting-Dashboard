@@ -454,7 +454,26 @@ async function getServerDetails(deviceId) {
   }
 }
 
+/**
+ * Get all NinjaOne organizations
+ */
+async function getOrganizations() {
+  logger.info('Fetching NinjaOne organizations');
+
+  try {
+    const organizations = await ninjaRequest('/v2/organizations');
+
+    logger.info(`Found ${organizations?.length || 0} NinjaOne organizations`);
+
+    return organizations || [];
+  } catch (error) {
+    logger.error('Failed to fetch NinjaOne organizations', { error: error.message });
+    throw new Error('Failed to fetch organizations from NinjaOne');
+  }
+}
+
 module.exports = {
   getServers,
-  getServerDetails
+  getServerDetails,
+  getOrganizations
 };
