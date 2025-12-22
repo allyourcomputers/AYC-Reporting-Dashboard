@@ -62,7 +62,9 @@ async function loadAvailableClients() {
     }
 
     const data = await response.json();
-    availableClients = data.clients;
+    availableClients = (data.clients || []).sort((a, b) => {
+      return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+    });
   } catch (error) {
     console.error('Error loading clients:', error);
   }
@@ -89,7 +91,9 @@ async function loadAvailableNinjaOneOrgs() {
     }
 
     const data = await response.json();
-    availableNinjaOneOrgs = data.organizations || [];
+    availableNinjaOneOrgs = (data.organizations || []).sort((a, b) => {
+      return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+    });
   } catch (error) {
     console.error('Error loading NinjaOne organizations:', error);
   }
