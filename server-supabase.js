@@ -173,8 +173,8 @@ app.get('/api/clients', requireAuth, injectCompanyContext, async (req, res) => {
       .select('*')
       .order('name', { ascending: true });
 
-    // For customer users or impersonating super admins, filter by company's HaloPSA clients
-    if (!req.isSuperAdmin || req.userProfile.impersonating_user_id) {
+    // For customer users, filter by company's HaloPSA clients
+    if (!req.isSuperAdmin) {
       if (!req.activeCompanyId) {
         return res.status(403).json({ error: 'No active company assigned' });
       }
@@ -224,7 +224,7 @@ app.get('/api/tickets/stats', requireAuth, injectCompanyContext, async (req, res
     }
 
     // Verify user has access to this client
-    if (!req.isSuperAdmin || req.userProfile.impersonating_user_id) {
+    if (!req.isSuperAdmin) {
       if (!req.activeCompanyId) {
         return res.status(403).json({ error: 'No active company assigned' });
       }
@@ -290,7 +290,7 @@ app.post('/api/tickets/monthly-stats', requireAuth, injectCompanyContext, async 
     }
 
     // Verify user has access to this client
-    if (!req.isSuperAdmin || req.userProfile.impersonating_user_id) {
+    if (!req.isSuperAdmin) {
       if (!req.activeCompanyId) {
         return res.status(403).json({ error: 'No active company assigned' });
       }
@@ -407,10 +407,10 @@ app.get('/api/dashboard/stats', requireAuth, injectCompanyContext, async (req, r
     const oneYearAgo = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
 
     // Determine which HaloPSA clients the user can see
-    let allowedClientIds = null; // null = all clients (super admin not impersonating)
+    let allowedClientIds = null; // null = all clients (super admin)
 
-    // For customer users or impersonating super admins, filter by company's HaloPSA clients
-    if (!req.isSuperAdmin || req.userProfile.impersonating_user_id) {
+    // For customer users, filter by company's HaloPSA clients
+    if (!req.isSuperAdmin) {
       if (!req.activeCompanyId) {
         return res.status(403).json({ error: 'No active company assigned' });
       }
@@ -666,7 +666,7 @@ app.get('/api/servers', requireAuth, injectCompanyContext, async (req, res) => {
     const serversData = await ninjaOneClient.getServers();
 
     // If super admin and not impersonating, show all servers
-    if (req.isSuperAdmin && !req.userProfile.impersonating_user_id) {
+    if (req.isSuperAdmin) {
       return res.json(serversData);
     }
 

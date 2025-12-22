@@ -24,29 +24,63 @@ async function injectCompanyContext(req, res, next) {
   try {
     const userId = req.user.id;
 
-    const { data: profile, error } = await supabase
+    // Load the actual authenticated user's profile first
+    const { data: actualProfile, error: actualError } = await supabase
       .from('user_profiles')
-      .select('role, active_company_id')
+      .select('role, active_company_id, impersonating_user_id')
       .eq('user_id', userId)
       .single();
 
-    if (error || !profile) {
+    if (actualError || !actualProfile) {
       return res.status(403).json({
         error: 'User profile not found. Contact administrator.'
       });
     }
 
+    // Determine which profile to use for access control
+    let effectiveProfile;
+    let isRealSuperAdmin = actualProfile.role === 'super_admin';
+
+    if (actualProfile.impersonating_user_id) {
+      // Admin is impersonating - use the impersonated user's profile
+      const { data: impersonatedProfile, error: impersonatedError } = await supabase
+        .from('user_profiles')
+        .select('role, active_company_id')
+        .eq('user_id', actualProfile.impersonating_user_id)
+        .single();
+
+      if (impersonatedError || !impersonatedProfile) {
+        return res.status(403).json({
+          error: 'Impersonated user profile not found. Contact administrator.'
+        });
+      }
+
+      effectiveProfile = {
+        ...impersonatedProfile,
+        impersonating_user_id: actualProfile.impersonating_user_id,
+        isImpersonating: true
+      };
+    } else {
+      // Not impersonating - use actual profile
+      effectiveProfile = {
+        ...actualProfile,
+        isImpersonating: false
+      };
+    }
+
     // Customer users must have an active company
-    if (profile.role === 'customer' && !profile.active_company_id) {
+    if (effectiveProfile.role === 'customer' && !effectiveProfile.active_company_id) {
       return res.status(403).json({
         error: 'No active company. Contact administrator.'
       });
     }
 
     // Inject context into request
-    req.userProfile = profile;
-    req.isSuperAdmin = profile.role === 'super_admin';
-    req.activeCompanyId = profile.active_company_id;
+    // IMPORTANT: Use the effective profile (impersonated user if impersonating)
+    req.userProfile = effectiveProfile;
+    req.isSuperAdmin = effectiveProfile.role === 'super_admin';
+    req.isRealSuperAdmin = isRealSuperAdmin; // Track if the REAL user is super admin
+    req.activeCompanyId = effectiveProfile.active_company_id;
 
     next();
   } catch (error) {
