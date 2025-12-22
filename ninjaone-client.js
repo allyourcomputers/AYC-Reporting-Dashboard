@@ -501,21 +501,14 @@ async function getWorkstations() {
     logger.info('Available device roles:', { roles: Array.from(uniqueRoles) });
     logger.info('Available device classes:', { classes: Array.from(uniqueClasses) });
 
-    // Filter for workstations (Windows Desktop, Windows Laptop, Mac Desktop, Mac Laptop)
+    // Filter for workstations (WINDOWS_WORKSTATION and MAC, exclude servers)
     const devices = allDevices.filter(device => {
-      const nodeClass = (device.nodeClass || '').toLowerCase();
-      const nodeRole = (device.nodeRolePolicyName || device.roleName || '').toLowerCase();
+      const nodeClass = (device.nodeClass || '').toUpperCase();
 
-      // Check if it's a workstation (desktop or laptop, not server)
-      const isWorkstation = nodeRole.includes('desktop') ||
-                           nodeRole.includes('laptop') ||
-                           nodeClass.includes('desktop') ||
-                           nodeClass.includes('laptop');
-
-      // Exclude servers
-      const isServer = nodeRole.includes('server') || nodeClass.includes('server');
-
-      return isWorkstation && !isServer;
+      // Include WINDOWS_WORKSTATION and MAC
+      // Exclude anything with SERVER in the class name
+      return (nodeClass === 'WINDOWS_WORKSTATION' || nodeClass === 'MAC') &&
+             !nodeClass.includes('SERVER');
     });
 
     logger.info(`Found ${devices.length} workstations after filtering`);
