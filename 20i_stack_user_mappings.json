@@ -1,0 +1,838 @@
+{
+  "extractedAt": "2025-12-23T20:04:04.557Z",
+  "source": "20i API",
+  "version": "1.0.0",
+  "stackUsers": [
+    {
+      "stackUserId": "907585",
+      "stackUserRef": "stack-user:907585",
+      "domains": [
+        "austininventories.co.uk"
+      ],
+      "packages": [
+        {
+          "id": 741209,
+          "externalId": "706473",
+          "name": "austininventories.co.uk",
+          "type": "Linux Unlimited",
+          "platform": "linux",
+          "enabled": true,
+          "created": "2019-11-04T13:56:52+00:00",
+          "isWordpress": false
+        }
+      ],
+      "stats": {
+        "totalDomains": 1,
+        "totalPackages": 1,
+        "wordpressPackages": 0,
+        "enabledPackages": 1
+      }
+    },
+    {
+      "stackUserId": "907587",
+      "stackUserRef": "stack-user:907587",
+      "domains": [
+        "victoriachiropractic.co.uk"
+      ],
+      "packages": [
+        {
+          "id": 741211,
+          "externalId": "706447",
+          "name": "victoriachiropractic.co.uk",
+          "type": "Linux Unlimited",
+          "platform": "linux",
+          "enabled": true,
+          "created": "2019-11-04T13:56:56+00:00",
+          "isWordpress": false
+        }
+      ],
+      "stats": {
+        "totalDomains": 1,
+        "totalPackages": 1,
+        "wordpressPackages": 0,
+        "enabledPackages": 1
+      }
+    },
+    {
+      "stackUserId": "907589",
+      "stackUserRef": "stack-user:907589",
+      "domains": [
+        "havoccreate.co.uk"
+      ],
+      "packages": [
+        {
+          "id": 741213,
+          "externalId": "706451",
+          "name": "havoccreate.co.uk",
+          "type": "Linux Unlimited",
+          "platform": "linux",
+          "enabled": true,
+          "created": "2019-11-04T13:56:59+00:00",
+          "isWordpress": false
+        }
+      ],
+      "stats": {
+        "totalDomains": 1,
+        "totalPackages": 1,
+        "wordpressPackages": 0,
+        "enabledPackages": 1
+      }
+    },
+    {
+      "stackUserId": "907593",
+      "stackUserRef": "stack-user:907593",
+      "domains": [
+        "homecountiesbusinesscentres.co.uk"
+      ],
+      "packages": [
+        {
+          "id": 741217,
+          "externalId": "706457",
+          "name": "homecountiesbusinesscentres.co.uk",
+          "type": "Linux Unlimited",
+          "platform": "linux",
+          "enabled": true,
+          "created": "2019-11-04T13:57:05+00:00",
+          "isWordpress": false
+        }
+      ],
+      "stats": {
+        "totalDomains": 1,
+        "totalPackages": 1,
+        "wordpressPackages": 0,
+        "enabledPackages": 1
+      }
+    },
+    {
+      "stackUserId": "907595",
+      "stackUserRef": "stack-user:907595",
+      "domains": [
+        "homecountiesland.co.uk"
+      ],
+      "packages": [
+        {
+          "id": 741219,
+          "externalId": "706459",
+          "name": "homecountiesland.co.uk",
+          "type": "Linux Unlimited",
+          "platform": "linux",
+          "enabled": true,
+          "created": "2019-11-04T13:57:08+00:00",
+          "isWordpress": false
+        }
+      ],
+      "stats": {
+        "totalDomains": 1,
+        "totalPackages": 1,
+        "wordpressPackages": 0,
+        "enabledPackages": 1
+      }
+    },
+    {
+      "stackUserId": "907597",
+      "stackUserRef": "stack-user:907597",
+      "domains": [
+        "aawadmin.co.uk"
+      ],
+      "packages": [
+        {
+          "id": 741221,
+          "externalId": "706569",
+          "name": "aawadmin.co.uk",
+          "type": "Linux Unlimited",
+          "platform": "linux",
+          "enabled": true,
+          "created": "2019-11-04T13:57:11+00:00",
+          "isWordpress": false
+        }
+      ],
+      "stats": {
+        "totalDomains": 1,
+        "totalPackages": 1,
+        "wordpressPackages": 0,
+        "enabledPackages": 1
+      }
+    },
+    {
+      "stackUserId": "907603",
+      "stackUserRef": "stack-user:907603",
+      "domains": [
+        "surreyandbucksantiques.co.uk"
+      ],
+      "packages": [
+        {
+          "id": 741227,
+          "externalId": "706477",
+          "name": "surreyandbucksantiques.co.uk",
+          "type": "Linux Unlimited",
+          "platform": "linux",
+          "enabled": true,
+          "created": "2019-11-04T13:57:20+00:00",
+          "isWordpress": false
+        }
+      ],
+      "stats": {
+        "totalDomains": 1,
+        "totalPackages": 1,
+        "wordpressPackages": 0,
+        "enabledPackages": 1
+      }
+    },
+    {
+      "stackUserId": "907605",
+      "stackUserRef": "stack-user:907605",
+      "domains": [
+        "elmbridgeestates.co.uk"
+      ],
+      "packages": [
+        {
+          "id": 741229,
+          "externalId": "706479",
+          "name": "elmbridgeestates.co.uk",
+          "type": "Linux Unlimited",
+          "platform": "linux",
+          "enabled": true,
+          "created": "2019-11-04T13:57:23+00:00",
+          "isWordpress": false
+        }
+      ],
+      "stats": {
+        "totalDomains": 1,
+        "totalPackages": 1,
+        "wordpressPackages": 0,
+        "enabledPackages": 1
+      }
+    },
+    {
+      "stackUserId": "907713",
+      "stackUserRef": "stack-user:907713",
+      "domains": [
+        "allyourcomputers.co.uk"
+      ],
+      "packages": [
+        {
+          "id": 741303,
+          "externalId": "706535",
+          "name": "allyourcomputers.co.uk",
+          "type": "Linux Unlimited",
+          "platform": "linux",
+          "enabled": true,
+          "created": "2019-11-04T14:59:40+00:00",
+          "isWordpress": false
+        }
+      ],
+      "stats": {
+        "totalDomains": 1,
+        "totalPackages": 1,
+        "wordpressPackages": 0,
+        "enabledPackages": 1
+      }
+    },
+    {
+      "stackUserId": "909041",
+      "stackUserRef": "stack-user:909041",
+      "domains": [
+        "allyourhosting.co.uk"
+      ],
+      "packages": [
+        {
+          "id": 741965,
+          "externalId": "707189",
+          "name": "allyourhosting.co.uk",
+          "type": "Linux Unlimited",
+          "platform": "linux",
+          "enabled": true,
+          "created": "2019-11-05T09:34:19+00:00",
+          "isWordpress": false
+        }
+      ],
+      "stats": {
+        "totalDomains": 1,
+        "totalPackages": 1,
+        "wordpressPackages": 0,
+        "enabledPackages": 1
+      }
+    },
+    {
+      "stackUserId": "988033",
+      "stackUserRef": "stack-user:988033",
+      "domains": [
+        "ayc365.co.uk"
+      ],
+      "packages": [
+        {
+          "id": 796277,
+          "externalId": "759091",
+          "name": "ayc365.co.uk",
+          "type": "Linux Unlimited",
+          "platform": "linux",
+          "enabled": true,
+          "created": "2020-01-14T11:00:31+00:00",
+          "isWordpress": false
+        }
+      ],
+      "stats": {
+        "totalDomains": 1,
+        "totalPackages": 1,
+        "wordpressPackages": 0,
+        "enabledPackages": 1
+      }
+    },
+    {
+      "stackUserId": "1058175",
+      "stackUserRef": "stack-user:1058175",
+      "domains": [
+        "abacusproperty-solutions.co.uk"
+      ],
+      "packages": [
+        {
+          "id": 844487,
+          "externalId": "804613",
+          "name": "abacusproperty-solutions.co.uk",
+          "type": "Linux Unlimited",
+          "platform": "linux",
+          "enabled": true,
+          "created": "2020-03-03T15:11:43+00:00",
+          "isWordpress": false
+        }
+      ],
+      "stats": {
+        "totalDomains": 1,
+        "totalPackages": 1,
+        "wordpressPackages": 0,
+        "enabledPackages": 1
+      }
+    },
+    {
+      "stackUserId": "1100351",
+      "stackUserRef": "stack-user:1100351",
+      "domains": [
+        "schematherapygb.com"
+      ],
+      "packages": [
+        {
+          "id": 875745,
+          "externalId": "834461",
+          "name": "schematherapygb.com",
+          "type": "Linux Unlimited",
+          "platform": "linux",
+          "enabled": true,
+          "created": "2020-04-02T09:41:11+00:00",
+          "isWordpress": false
+        }
+      ],
+      "stats": {
+        "totalDomains": 1,
+        "totalPackages": 1,
+        "wordpressPackages": 0,
+        "enabledPackages": 1
+      }
+    },
+    {
+      "stackUserId": "1100353",
+      "stackUserRef": "stack-user:1100353",
+      "domains": [
+        "oandk.co.uk"
+      ],
+      "packages": [
+        {
+          "id": 875747,
+          "externalId": "834463",
+          "name": "oandk.co.uk",
+          "type": "Linux Unlimited",
+          "platform": "linux",
+          "enabled": true,
+          "created": "2020-04-02T09:41:14+00:00",
+          "isWordpress": false
+        }
+      ],
+      "stats": {
+        "totalDomains": 1,
+        "totalPackages": 1,
+        "wordpressPackages": 0,
+        "enabledPackages": 1
+      }
+    },
+    {
+      "stackUserId": "1156481",
+      "stackUserRef": "stack-user:1156481",
+      "domains": [
+        "pressfileprint.com"
+      ],
+      "packages": [
+        {
+          "id": 915201,
+          "externalId": "872397",
+          "name": "pressfileprint.com",
+          "type": "Linux Unlimited",
+          "platform": "linux",
+          "enabled": true,
+          "created": "2020-05-04T09:58:21+00:00",
+          "isWordpress": false
+        }
+      ],
+      "stats": {
+        "totalDomains": 1,
+        "totalPackages": 1,
+        "wordpressPackages": 0,
+        "enabledPackages": 1
+      }
+    },
+    {
+      "stackUserId": "1158329",
+      "stackUserRef": "stack-user:1158329",
+      "domains": [
+        "erhlanderr.uk"
+      ],
+      "packages": [
+        {
+          "id": 916413,
+          "externalId": "873507",
+          "name": "erhlanderr.uk",
+          "type": "SMB Hosting",
+          "platform": "linux",
+          "enabled": true,
+          "created": "2020-05-05T08:18:39+00:00",
+          "isWordpress": false
+        }
+      ],
+      "stats": {
+        "totalDomains": 1,
+        "totalPackages": 1,
+        "wordpressPackages": 0,
+        "enabledPackages": 1
+      }
+    },
+    {
+      "stackUserId": "1158371",
+      "stackUserRef": "stack-user:1158371",
+      "domains": [
+        "maclennanphotography.com"
+      ],
+      "packages": [
+        {
+          "id": 916439,
+          "externalId": "873529",
+          "name": "maclennanphotography.com",
+          "type": "Linux Unlimited",
+          "platform": "linux",
+          "enabled": true,
+          "created": "2020-05-05T08:34:02+00:00",
+          "isWordpress": false
+        }
+      ],
+      "stats": {
+        "totalDomains": 1,
+        "totalPackages": 1,
+        "wordpressPackages": 0,
+        "enabledPackages": 1
+      }
+    },
+    {
+      "stackUserId": "1158403",
+      "stackUserRef": "stack-user:1158403",
+      "domains": [
+        "thewildhighlander.com"
+      ],
+      "packages": [
+        {
+          "id": 916455,
+          "externalId": "873549",
+          "name": "thewildhighlander.com",
+          "type": "Linux Unlimited",
+          "platform": "linux",
+          "enabled": true,
+          "created": "2020-05-05T08:44:55+00:00",
+          "isWordpress": false
+        }
+      ],
+      "stats": {
+        "totalDomains": 1,
+        "totalPackages": 1,
+        "wordpressPackages": 0,
+        "enabledPackages": 1
+      }
+    },
+    {
+      "stackUserId": "1158417",
+      "stackUserRef": "stack-user:1158417",
+      "domains": [
+        "twhblog.com"
+      ],
+      "packages": [
+        {
+          "id": 916465,
+          "externalId": "873559",
+          "name": "twhblog.com",
+          "type": "Linux Unlimited",
+          "platform": "linux",
+          "enabled": true,
+          "created": "2020-05-05T08:51:42+00:00",
+          "isWordpress": false
+        }
+      ],
+      "stats": {
+        "totalDomains": 1,
+        "totalPackages": 1,
+        "wordpressPackages": 0,
+        "enabledPackages": 1
+      }
+    },
+    {
+      "stackUserId": "1290875",
+      "stackUserRef": "stack-user:1290875",
+      "domains": [
+        "ayc-demo.co.uk"
+      ],
+      "packages": [
+        {
+          "id": 1006121,
+          "externalId": "959373",
+          "name": "ayc-demo.co.uk",
+          "type": "WordPress Unlimited",
+          "platform": "wordpress",
+          "enabled": true,
+          "created": "2020-07-21T07:25:08+00:00",
+          "isWordpress": true
+        }
+      ],
+      "stats": {
+        "totalDomains": 1,
+        "totalPackages": 1,
+        "wordpressPackages": 1,
+        "enabledPackages": 1
+      }
+    },
+    {
+      "stackUserId": "1739430",
+      "stackUserRef": "stack-user:1739430",
+      "domains": [
+        "honeybeehappy.co.uk"
+      ],
+      "packages": [
+        {
+          "id": 1317914,
+          "externalId": "1230545",
+          "name": "honeybeehappy.co.uk",
+          "type": "WordPress Unlimited",
+          "platform": "wordpress",
+          "enabled": true,
+          "created": "2021-04-20T12:10:29+00:00",
+          "isWordpress": true
+        }
+      ],
+      "stats": {
+        "totalDomains": 1,
+        "totalPackages": 1,
+        "wordpressPackages": 1,
+        "enabledPackages": 1
+      }
+    },
+    {
+      "stackUserId": "1800422",
+      "stackUserRef": "stack-user:1800422",
+      "domains": [
+        "havenbridge.co.uk"
+      ],
+      "packages": [
+        {
+          "id": 1361914,
+          "externalId": "1251794",
+          "name": "havenbridge.co.uk",
+          "type": "WordPress Unlimited",
+          "platform": "wordpress",
+          "enabled": true,
+          "created": "2021-06-03T09:00:46+00:00",
+          "isWordpress": true
+        }
+      ],
+      "stats": {
+        "totalDomains": 1,
+        "totalPackages": 1,
+        "wordpressPackages": 1,
+        "enabledPackages": 1
+      }
+    },
+    {
+      "stackUserId": "1831538",
+      "stackUserRef": "stack-user:1831538",
+      "domains": [
+        "creativtribe.co.uk"
+      ],
+      "packages": [
+        {
+          "id": 1384388,
+          "externalId": "1262659",
+          "name": "creativtribe.co.uk",
+          "type": "WordPress Unlimited",
+          "platform": "wordpress",
+          "enabled": true,
+          "created": "2021-06-25T16:24:23+00:00",
+          "isWordpress": true
+        }
+      ],
+      "stats": {
+        "totalDomains": 1,
+        "totalPackages": 1,
+        "wordpressPackages": 1,
+        "enabledPackages": 1
+      }
+    },
+    {
+      "stackUserId": "2199638",
+      "stackUserRef": "stack-user:2199638",
+      "domains": [
+        "medical-accountants.co.uk"
+      ],
+      "packages": [
+        {
+          "id": 1628020,
+          "externalId": "1378898",
+          "name": "medical-accountants.co.uk",
+          "type": "WordPress Unlimited",
+          "platform": "wordpress",
+          "enabled": true,
+          "created": "2022-03-10T12:14:42+00:00",
+          "isWordpress": true
+        }
+      ],
+      "stats": {
+        "totalDomains": 1,
+        "totalPackages": 1,
+        "wordpressPackages": 1,
+        "enabledPackages": 1
+      }
+    },
+    {
+      "stackUserId": "2265092",
+      "stackUserRef": "stack-user:2265092",
+      "domains": [
+        "jardines.co.uk"
+      ],
+      "packages": [
+        {
+          "id": 1674450,
+          "externalId": "1401070",
+          "name": "jardines.co.uk",
+          "type": "WordPress Unlimited",
+          "platform": "wordpress",
+          "enabled": true,
+          "created": "2022-04-28T16:06:33+00:00",
+          "isWordpress": true
+        }
+      ],
+      "stats": {
+        "totalDomains": 1,
+        "totalPackages": 1,
+        "wordpressPackages": 1,
+        "enabledPackages": 1
+      }
+    },
+    {
+      "stackUserId": "2378570",
+      "stackUserRef": "stack-user:2378570",
+      "domains": [
+        "sh-ac.org.uk"
+      ],
+      "packages": [
+        {
+          "id": 1755720,
+          "externalId": "1439747",
+          "name": "sh-ac.org.uk",
+          "type": "WordPress Unlimited",
+          "platform": "wordpress",
+          "enabled": true,
+          "created": "2022-07-25T15:08:21+00:00",
+          "isWordpress": true
+        }
+      ],
+      "stats": {
+        "totalDomains": 1,
+        "totalPackages": 1,
+        "wordpressPackages": 1,
+        "enabledPackages": 1
+      }
+    },
+    {
+      "stackUserId": "2395940",
+      "stackUserRef": "stack-user:2395940",
+      "domains": [
+        "sh-ac-office.org.uk"
+      ],
+      "packages": [
+        {
+          "id": 1767724,
+          "externalId": "1445621",
+          "name": "sh-ac-office.org.uk",
+          "type": "Linux Unlimited",
+          "platform": "linux",
+          "enabled": true,
+          "created": "2022-08-07T11:49:19+00:00",
+          "isWordpress": false
+        }
+      ],
+      "stats": {
+        "totalDomains": 1,
+        "totalPackages": 1,
+        "wordpressPackages": 0,
+        "enabledPackages": 1
+      }
+    },
+    {
+      "stackUserId": "2863796",
+      "stackUserRef": "stack-user:2863796",
+      "domains": [
+        "elitespecialistsupportservices.co.uk"
+      ],
+      "packages": [
+        {
+          "id": 2097030,
+          "externalId": "1648847",
+          "name": "elitespecialistsupportservices.co.uk",
+          "type": "WordPress Unlimited",
+          "platform": "wordpress",
+          "enabled": true,
+          "created": "2023-04-20T15:09:56+00:00",
+          "isWordpress": true
+        }
+      ],
+      "stats": {
+        "totalDomains": 1,
+        "totalPackages": 1,
+        "wordpressPackages": 1,
+        "enabledPackages": 1
+      }
+    },
+    {
+      "stackUserId": "3205128",
+      "stackUserRef": "stack-user:3205128",
+      "domains": [
+        "surreyandbucksbusinesscentres.co.uk"
+      ],
+      "packages": [
+        {
+          "id": 420513,
+          "externalId": "401211",
+          "name": "surreyandbucksbusinesscentres.co.uk",
+          "type": "Linux Unlimited",
+          "platform": "linux",
+          "enabled": true,
+          "created": "2018-11-15T09:37:18+00:00",
+          "isWordpress": false
+        }
+      ],
+      "stats": {
+        "totalDomains": 1,
+        "totalPackages": 1,
+        "wordpressPackages": 0,
+        "enabledPackages": 1
+      }
+    },
+    {
+      "stackUserId": "3618878",
+      "stackUserRef": "stack-user:3618878",
+      "domains": [
+        "rosekirk.co.uk"
+      ],
+      "packages": [
+        {
+          "id": 2516478,
+          "externalId": "2049819",
+          "name": "rosekirk.co.uk",
+          "type": "Linux Unlimited",
+          "platform": "linux",
+          "enabled": true,
+          "created": "2024-03-19T15:14:45+00:00",
+          "isWordpress": false
+        }
+      ],
+      "stats": {
+        "totalDomains": 1,
+        "totalPackages": 1,
+        "wordpressPackages": 0,
+        "enabledPackages": 1
+      }
+    },
+    {
+      "stackUserId": "3803074",
+      "stackUserRef": "stack-user:3803074",
+      "domains": [
+        "thesuccesselement.com"
+      ],
+      "packages": [
+        {
+          "id": 2610116,
+          "externalId": "2130139",
+          "name": "thesuccesselement.com",
+          "type": "WordPress Unlimited",
+          "platform": "wordpress",
+          "enabled": true,
+          "created": "2024-05-20T15:59:51+00:00",
+          "isWordpress": true
+        }
+      ],
+      "stats": {
+        "totalDomains": 1,
+        "totalPackages": 1,
+        "wordpressPackages": 1,
+        "enabledPackages": 1
+      }
+    },
+    {
+      "stackUserId": "4773009",
+      "stackUserRef": "stack-user:4773009",
+      "domains": [
+        "topbrassminis.co.uk"
+      ],
+      "packages": [
+        {
+          "id": 3282575,
+          "externalId": "2662353",
+          "name": "topbrassminis.co.uk",
+          "type": "Linux Unlimited",
+          "platform": "linux",
+          "enabled": true,
+          "created": "2025-06-20T12:05:07+00:00",
+          "isWordpress": false
+        }
+      ],
+      "stats": {
+        "totalDomains": 1,
+        "totalPackages": 1,
+        "wordpressPackages": 0,
+        "enabledPackages": 1
+      }
+    },
+    {
+      "stackUserId": "5089523",
+      "stackUserRef": "stack-user:5089523",
+      "domains": [
+        "allyourdesktops.co.uk"
+      ],
+      "packages": [
+        {
+          "id": 3514269,
+          "externalId": "2882863",
+          "name": "allyourdesktops.co.uk",
+          "type": "Linux Unlimited",
+          "platform": "linux",
+          "enabled": true,
+          "created": "2025-12-22T18:26:38+00:00",
+          "isWordpress": false
+        }
+      ],
+      "stats": {
+        "totalDomains": 1,
+        "totalPackages": 1,
+        "wordpressPackages": 0,
+        "enabledPackages": 1
+      }
+    }
+  ],
+  "summary": {
+    "totalUsers": 33,
+    "totalDomains": 33,
+    "totalPackages": 33,
+    "totalWordPressPackages": 9
+  }
+}
