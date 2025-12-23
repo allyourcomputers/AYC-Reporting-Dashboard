@@ -95,11 +95,11 @@ async function getDomains() {
   try {
     // Fetch domains and packages in parallel
     const [domainsResponse, packagesResponse] = await Promise.all([
-      twentyiRequest('/reseller/domains').catch(err => {
+      twentyiRequest('/domain').catch(err => {
         logger.error('20i: Failed to fetch domains', { error: err.message });
         return [];
       }),
-      twentyiRequest('/reseller/packages').catch(err => {
+      twentyiRequest('/package').catch(err => {
         logger.error('20i: Failed to fetch packages', { error: err.message });
         return [];
       })
@@ -200,7 +200,7 @@ async function getDomains() {
 async function getStackcpUsers() {
   try {
     // Fetch all packages to extract stack users
-    const packagesResponse = await twentyiRequest('/reseller/packages');
+    const packagesResponse = await twentyiRequest('/package');
     const packages = Array.isArray(packagesResponse) ? packagesResponse : [];
 
     // Extract unique stack user IDs from all packages
