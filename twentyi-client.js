@@ -195,7 +195,8 @@ async function getDomains() {
 /**
  * Get available StackCP users (for admin mapping UI)
  *
- * Returns list of StackCP users extracted from packages
+ * Returns list of StackCP users with their primary domain names
+ * Each stack user is identified by the primary domain associated with them
  */
 async function getStackcpUsers() {
   try {
@@ -203,7 +204,7 @@ async function getStackcpUsers() {
     const packagesResponse = await twentyiRequest('/package');
     const packages = Array.isArray(packagesResponse) ? packagesResponse : [];
 
-    // Extract unique stack user IDs from all packages
+    // Extract unique stack user IDs and map to their primary domain
     const stackUserMap = new Map();
     packages.forEach(pkg => {
       if (pkg.stackUsers && Array.isArray(pkg.stackUsers)) {
@@ -212,24 +213,28 @@ async function getStackcpUsers() {
           const match = stackUser.match(/stack-user:(\d+)/);
           if (match) {
             const userId = match[1];
-            // Use package name as a reference for the user
+            const domainName = pkg.name || `Stack User ${userId}`;
+
+            // Store first domain as primary domain for this stack user
             if (!stackUserMap.has(userId)) {
               stackUserMap.set(userId, {
                 id: userId,
-                name: `Stack User ${userId}`,
-                packages: []
+                primaryDomain: domainName,
+                domainCount: 0
               });
             }
-            stackUserMap.get(userId).packages.push(pkg.name);
+            stackUserMap.get(userId).domainCount++;
           }
         });
       }
     });
 
-    // Convert map to array and enrich user names with package info
+    // Convert map to array with friendly names
     const users = Array.from(stackUserMap.values()).map(user => ({
       id: user.id,
-      name: `Stack User ${user.id} (${user.packages.length} package${user.packages.length !== 1 ? 's' : ''})`
+      name: user.domainCount === 1
+        ? user.primaryDomain
+        : `${user.primaryDomain} (+${user.domainCount - 1} more)`
     }));
 
     logger.info('20i: Fetched StackCP users', { count: users.length });
