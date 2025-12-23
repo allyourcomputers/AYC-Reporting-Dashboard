@@ -3,6 +3,7 @@ const router = express.Router();
 const { supabase } = require('../middleware/company-context');
 const logger = require('../logger');
 const ninjaOneClient = require('../ninjaone-client');
+const twentyiClient = require('../twentyi-client');
 
 // Middleware to verify super admin access
 function requireSuperAdmin(req, res, next) {
@@ -56,6 +57,16 @@ router.get('/', requireSuperAdmin, async (req, res) => {
       return res.status(500).json({ error: 'Failed to fetch NinjaOne mappings' });
     }
 
+    // Get 20i StackCP user mappings
+    const { data: twentyiMappings, error: twentyiError } = await supabase
+      .from('company_20i_stackcp_users')
+      .select('*');
+
+    if (twentyiError) {
+      logger.error('Failed to fetch 20i mappings', { error: twentyiError });
+      return res.status(500).json({ error: 'Failed to fetch 20i mappings' });
+    }
+
     // Build response with mappings
     const companiesWithMappings = companies.map(company => {
       const haloPSAClients = haloPSAMappings
@@ -72,12 +83,20 @@ router.get('/', requireSuperAdmin, async (req, res) => {
           name: m.ninjaone_org_name
         }));
 
+      const twentyiStackcpUsers = twentyiMappings
+        .filter(m => m.company_id === company.id)
+        .map(m => ({
+          id: m.stackcp_user_id,
+          name: m.stackcp_user_name
+        }));
+
       return {
         id: company.id,
         name: company.name,
         logoUrl: company.logo_url,
         haloPSAClients,
         ninjaOneOrgs,
+        twentyiStackcpUsers,
         createdAt: company.created_at,
         updatedAt: company.updated_at
       };
@@ -361,6 +380,87 @@ router.get('/available-ninjaone-orgs', requireSuperAdmin, async (req, res) => {
   } catch (error) {
     logger.error('Error fetching NinjaOne organizations', { error: error.message });
     res.status(500).json({ error: 'Failed to fetch NinjaOne organizations' });
+  }
+});
+
+/**
+ * GET /api/admin/companies/available-20i-stackcp-users
+ * Get all available 20i StackCP users for mapping
+ */
+router.get('/available-20i-stackcp-users', requireSuperAdmin, async (req, res) => {
+  try {
+    const stackcpUsers = await twentyiClient.getStackcpUsers();
+    res.json({ stackcpUsers });
+  } catch (error) {
+    logger.error('Error fetching 20i StackCP users', { error: error.message });
+    res.status(500).json({ error: 'Failed to fetch 20i StackCP users' });
+  }
+});
+
+/**
+ * POST /api/admin/companies/:companyId/20i-stackcp-users
+ * Set 20i StackCP user mappings for a company (replaces existing)
+ *
+ * Body:
+ * {
+ *   stackcpUsers: [{ id: string, name: string }]
+ * }
+ */
+router.post('/:companyId/20i-stackcp-users', requireSuperAdmin, async (req, res) => {
+  try {
+    const { companyId } = req.params;
+    const { stackcpUsers } = req.body;
+
+    if (!Array.isArray(stackcpUsers)) {
+      return res.status(400).json({ error: 'stackcpUsers must be an array' });
+    }
+
+    // Verify company exists
+    const { data: company, error: companyError } = await supabase
+      .from('companies')
+      .select('id')
+      .eq('id', companyId)
+      .single();
+
+    if (companyError || !company) {
+      return res.status(404).json({ error: 'Company not found' });
+    }
+
+    // Delete existing mappings
+    const { error: deleteError } = await supabase
+      .from('company_20i_stackcp_users')
+      .delete()
+      .eq('company_id', companyId);
+
+    if (deleteError) {
+      logger.error('Failed to delete existing 20i mappings', { error: deleteError, companyId });
+      return res.status(500).json({ error: 'Failed to update mappings' });
+    }
+
+    // Create new mappings
+    if (stackcpUsers.length > 0) {
+      const mappings = stackcpUsers.map(user => ({
+        company_id: companyId,
+        stackcp_user_id: user.id,
+        stackcp_user_name: user.name
+      }));
+
+      const { error: insertError } = await supabase
+        .from('company_20i_stackcp_users')
+        .insert(mappings);
+
+      if (insertError) {
+        logger.error('Failed to create 20i mappings', { error: insertError, companyId });
+        return res.status(500).json({ error: 'Failed to create mappings' });
+      }
+    }
+
+    logger.info('20i StackCP user mappings updated', { companyId, count: stackcpUsers.length });
+
+    res.json({ success: true });
+  } catch (error) {
+    logger.error('Error updating 20i mappings', { error: error.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 

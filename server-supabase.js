@@ -7,6 +7,7 @@ const { createClient } = require('@supabase/supabase-js');
 const { performFullSync } = require('./sync-service');
 const logger = require('./logger');
 const ninjaOneClient = require('./ninjaone-client');
+const twentyiClient = require('./twentyi-client');
 const { injectCompanyContext } = require('./middleware/company-context');
 const adminUsersRouter = require('./routes/admin-users');
 const adminCompaniesRouter = require('./routes/admin-companies');
@@ -80,6 +81,8 @@ console.log('- SUPABASE_ANON_KEY:', SUPABASE_ANON_KEY ? `Set (${SUPABASE_ANON_KE
 console.log('- HALO_API_URL:', process.env.HALO_API_URL ? 'Set' : 'NOT SET');
 console.log('- HALO_CLIENT_ID:', process.env.HALO_CLIENT_ID ? 'Set' : 'NOT SET');
 console.log('- HALO_CLIENT_SECRET:', process.env.HALO_CLIENT_SECRET ? 'Set' : 'NOT SET');
+console.log('- TWENTYI_API_KEY:', process.env.TWENTYI_API_KEY ? 'Set' : 'NOT SET');
+console.log('- TWENTYI_OAUTH_KEY:', process.env.TWENTYI_OAUTH_KEY ? 'Set' : 'NOT SET');
 console.log('- NODE_ENV:', process.env.NODE_ENV || 'development');
 
 if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY || !SUPABASE_ANON_KEY) {
@@ -806,6 +809,81 @@ app.get('/api/workstations/:deviceId', requireAuth, async (req, res) => {
   } catch (error) {
     logger.error('Error fetching workstation details:', error);
     res.status(500).json({ error: 'Failed to fetch workstation details' });
+  }
+});
+
+// Get all domains with hosting status (filtered by company for customers)
+app.get('/api/domains', requireAuth, injectCompanyContext, async (req, res) => {
+  try {
+    const domainsData = await twentyiClient.getDomains();
+
+    // If super admin and not impersonating, show all domains
+    if (req.isSuperAdmin) {
+      return res.json(domainsData);
+    }
+
+    // For customer users or impersonating super admins, filter by company 20i users
+    if (req.activeCompanyId) {
+      // Get 20i StackCP user IDs for this company
+      const { data: stackcpUsers, error } = await supabase
+        .from('company_20i_stackcp_users')
+        .select('stackcp_user_id')
+        .eq('company_id', req.activeCompanyId);
+
+      if (error) {
+        logger.error('Failed to fetch company 20i users', { error, companyId: req.activeCompanyId });
+        return res.status(500).json({ error: 'Failed to fetch company data' });
+      }
+
+      const allowedUserIds = stackcpUsers.map(u => u.stackcp_user_id);
+
+      if (allowedUserIds.length === 0) {
+        // Company has no 20i users assigned, return empty
+        return res.json({
+          summary: {
+            totalDomains: 0,
+            domainsWithHosting: 0,
+            domainsExpiringSoon: 0
+          },
+          domains: [],
+          lastUpdated: new Date().toISOString()
+        });
+      }
+
+      // Filter domains by StackCP user ID
+      const filteredDomains = domainsData.domains.filter(domain =>
+        allowedUserIds.includes(domain.stackcpUserId)
+      );
+
+      // Recalculate summary for filtered domains
+      const summary = {
+        totalDomains: filteredDomains.length,
+        domainsWithHosting: filteredDomains.filter(d => d.hasHosting).length,
+        domainsExpiringSoon: filteredDomains.filter(d =>
+          d.status === 'expiring-soon' || d.status === 'expired'
+        ).length
+      };
+
+      return res.json({
+        summary,
+        domains: filteredDomains,
+        lastUpdated: domainsData.lastUpdated
+      });
+    }
+
+    // No company assigned, return empty result
+    res.json({
+      summary: {
+        totalDomains: 0,
+        domainsWithHosting: 0,
+        domainsExpiringSoon: 0
+      },
+      domains: [],
+      lastUpdated: new Date().toISOString()
+    });
+  } catch (error) {
+    logger.error('Error fetching domains:', error);
+    res.status(500).json({ error: 'Failed to fetch domain data' });
   }
 });
 

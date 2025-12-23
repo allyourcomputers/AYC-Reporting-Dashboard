@@ -245,6 +245,10 @@
                 <span class="nav-icon">💻</span>
                 Workstations
             </a>
+            <a href="/domains.html" class="nav-item">
+                <span class="nav-icon">🌐</span>
+                Domains & Hosting
+            </a>
             <div class="nav-section" id="adminNavSection" style="display:none;">ADMIN</div>
             <a href="/admin-users.html" class="nav-item" id="adminUsersLink" style="display:none;">
                 <span class="nav-icon">👥</span>
@@ -358,6 +362,29 @@
             <div class="modal-actions">
                 <button class="btn btn-primary" onclick="saveNinjaOneMappings()">Save Mappings</button>
                 <button class="btn btn-secondary" onclick="closeNinjaOneModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Manage 20i StackCP Users Modal -->
+    <div id="twentyiModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">Manage 20i StackCP Users</div>
+            <p style="color: #666; font-size: 14px; margin-bottom: 20px;">
+                Select which 20i StackCP users belong to <strong id="twentyiCompanyName"></strong>
+            </p>
+
+            <button class="select-all-btn" onclick="toggleSelectAll20iUsers()">Toggle Select All</button>
+
+            <div class="form-group">
+                <div id="twentyiCheckboxes" class="form-checkbox-group">
+                    <p>Loading StackCP users...</p>
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn btn-primary" onclick="save20iMappings()">Save Mappings</button>
+                <button class="btn btn-secondary" onclick="close20iModal()">Cancel</button>
             </div>
         </div>
     </div>

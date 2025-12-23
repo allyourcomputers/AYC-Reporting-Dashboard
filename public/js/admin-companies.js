@@ -2,6 +2,7 @@
 let companies = [];
 let availableClients = [];
 let availableNinjaOneOrgs = [];
+let available20iUsers = [];
 let editingCompanyId = null;
 let managingCompanyId = null;
 
@@ -10,6 +11,7 @@ async function init() {
   await loadCompanies();
   await loadAvailableClients();
   await loadAvailableNinjaOneOrgs();
+  await load20iStackcpUsers();
 }
 
 /**
@@ -100,6 +102,35 @@ async function loadAvailableNinjaOneOrgs() {
 }
 
 /**
+ * Load available 20i StackCP users
+ */
+async function load20iStackcpUsers() {
+  try {
+    const authData = localStorage.getItem('sb-supabase-auth-token');
+    const session = JSON.parse(authData);
+    const token = session.access_token;
+
+    const response = await fetch('/api/admin/companies/available-20i-stackcp-users', {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to load 20i StackCP users');
+    }
+
+    const data = await response.json();
+    available20iUsers = (data.stackcpUsers || []).sort((a, b) => {
+      return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+    });
+  } catch (error) {
+    console.error('Error loading 20i StackCP users:', error);
+  }
+}
+
+/**
  * Render companies grid
  */
 function renderCompanies() {
@@ -140,6 +171,18 @@ function renderCompanies() {
         </div>
       </div>
 
+      <div class="company-card-section">
+        <div class="company-card-section-title">20i StackCP Users (${company.twentyiStackcpUsers?.length || 0})</div>
+        <div class="mapping-list">
+          ${company.twentyiStackcpUsers && company.twentyiStackcpUsers.length > 0 ?
+            company.twentyiStackcpUsers.map(user => `
+              <div class="mapping-item">${user.name || user.id}</div>
+            `).join('') :
+            '<div class="mapping-empty">No 20i StackCP users assigned</div>'
+          }
+        </div>
+      </div>
+
       <div class="company-card-actions">
         <button class="btn btn-primary" onclick="openEditCompanyModal('${company.id}')">
           Edit
@@ -149,6 +192,9 @@ function renderCompanies() {
         </button>
         <button class="btn btn-secondary" onclick="openNinjaOneModal('${company.id}')">
           NinjaOne
+        </button>
+        <button class="btn btn-secondary" onclick="open20iModal('${company.id}')">
+          20i StackCP
         </button>
         <button class="btn btn-danger" onclick="deleteCompany('${company.id}', '${company.name}')">
           Delete
@@ -572,6 +618,112 @@ async function saveNinjaOneMappings() {
     await loadCompanies();
   } catch (error) {
     console.error('Error saving NinjaOne mappings:', error);
+    alert('Error: ' + error.message);
+  }
+}
+
+/**
+ * Open 20i StackCP mappings modal
+ */
+function open20iModal(companyId) {
+  const company = companies.find(c => c.id === companyId);
+  if (!company) return;
+
+  managingCompanyId = companyId;
+  document.getElementById('twentyiCompanyName').textContent = company.name;
+
+  // Render checkboxes with current mappings selected
+  const selectedUserIds = company.twentyiStackcpUsers.map(user => user.id);
+  render20iCheckboxes(selectedUserIds);
+
+  document.getElementById('twentyiModal').classList.add('active');
+}
+
+/**
+ * Close 20i StackCP modal
+ */
+function close20iModal() {
+  document.getElementById('twentyiModal').classList.remove('active');
+  managingCompanyId = null;
+}
+
+/**
+ * Render 20i StackCP user checkboxes
+ */
+function render20iCheckboxes(selectedIds = []) {
+  const container = document.getElementById('twentyiCheckboxes');
+
+  if (available20iUsers.length === 0) {
+    container.innerHTML = '<p>No 20i StackCP users available.</p>';
+    return;
+  }
+
+  container.innerHTML = available20iUsers.map(user => `
+    <div class="form-checkbox-item">
+      <input
+        type="checkbox"
+        id="twentyi-${user.id}"
+        value="${user.id}"
+        data-name="${user.name}"
+        ${selectedIds.includes(user.id) ? 'checked' : ''}
+      >
+      <label for="twentyi-${user.id}">${user.name}</label>
+    </div>
+  `).join('');
+}
+
+/**
+ * Toggle select all 20i StackCP users
+ */
+function toggleSelectAll20iUsers() {
+  const checkboxes = document.querySelectorAll('#twentyiCheckboxes input[type="checkbox"]');
+  const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+
+  checkboxes.forEach(cb => {
+    cb.checked = !allChecked;
+  });
+}
+
+/**
+ * Get selected 20i StackCP users
+ */
+function getSelected20iUsers() {
+  const checkboxes = document.querySelectorAll('#twentyiCheckboxes input[type="checkbox"]:checked');
+  return Array.from(checkboxes).map(cb => ({
+    id: cb.value,
+    name: cb.getAttribute('data-name')
+  }));
+}
+
+/**
+ * Save 20i StackCP user mappings
+ */
+async function save20iMappings() {
+  try {
+    const stackcpUsers = getSelected20iUsers();
+    const authData = localStorage.getItem('sb-supabase-auth-token');
+    const session = JSON.parse(authData);
+    const token = session.access_token;
+
+    const response = await fetch(`/api/admin/companies/${managingCompanyId}/20i-stackcp-users`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ stackcpUsers })
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to save mappings');
+    }
+
+    alert('20i StackCP user mappings saved successfully');
+    close20iModal();
+    await loadCompanies();
+  } catch (error) {
+    console.error('Error saving 20i mappings:', error);
     alert('Error: ' + error.message);
   }
 }

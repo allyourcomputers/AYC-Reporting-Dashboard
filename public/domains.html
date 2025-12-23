@@ -3,12 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Workstations - Company Dashboard</title>
+    <title>Domains & Hosting - Company Dashboard</title>
     <link rel="stylesheet" href="/css/shared.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="/js/auth.js"></script>
     <script src="/js/company-switcher.js"></script>
     <style>
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .summary-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .summary-card-title {
+            font-size: 13px;
+            color: #666;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+
+        .summary-card-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: #333;
+        }
+
         .refresh-controls {
             display: flex;
             justify-content: space-between;
@@ -46,11 +74,11 @@
             cursor: not-allowed;
         }
 
-        .workstations-table-container {
+        .domains-table-container {
             margin-top: 30px;
         }
 
-        .workstations-table {
+        .domains-table {
             width: 100%;
             border-collapse: collapse;
             background: white;
@@ -59,11 +87,11 @@
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
-        .workstations-table thead {
+        .domains-table thead {
             background: #f5f6fa;
         }
 
-        .workstations-table th {
+        .domains-table th {
             padding: 12px 15px;
             text-align: left;
             font-size: 11px;
@@ -73,24 +101,65 @@
             letter-spacing: 0.5px;
         }
 
-        .workstations-table td {
+        .domains-table td {
             padding: 12px 15px;
             font-size: 13px;
             color: #333;
             border-top: 1px solid #f0f0f0;
         }
 
-        .workstations-table tbody tr:hover {
+        .domains-table tbody tr:hover {
             background: #f9f9f9;
         }
 
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-badge.status-active {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .status-badge.status-expiring-soon {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+
+        .status-badge.status-expired {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        .hosting-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .hosting-badge.has-hosting {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .hosting-badge.no-hosting {
+            background: #f5f5f5;
+            color: #999;
+        }
+
         @media (max-width: 768px) {
-            .workstations-table {
+            .domains-table {
                 font-size: 12px;
             }
 
-            .workstations-table th,
-            .workstations-table td {
+            .domains-table th,
+            .domains-table td {
                 padding: 8px 10px;
             }
         }
@@ -131,11 +200,11 @@
                 <span class="nav-icon">🖥️</span>
                 Servers
             </a>
-            <a href="/workstations.html" class="nav-item active">
+            <a href="/workstations.html" class="nav-item">
                 <span class="nav-icon">💻</span>
                 Workstations
             </a>
-            <a href="/domains.html" class="nav-item">
+            <a href="/domains.html" class="nav-item active">
                 <span class="nav-icon">🌐</span>
                 Domains & Hosting
             </a>
@@ -164,8 +233,23 @@
 
         <div class="dashboard-content">
             <div class="welcome-section">
-                <h1>Workstation Monitoring</h1>
-                <p class="subtitle">At-a-glance view of all your Windows and Mac workstations.</p>
+                <h1>Domains & Hosting</h1>
+                <p class="subtitle">Manage your domain portfolio and hosting packages.</p>
+            </div>
+
+            <div class="summary-cards">
+                <div class="summary-card">
+                    <div class="summary-card-title">Total Domains</div>
+                    <div class="summary-card-value" id="totalDomains">-</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-card-title">With Hosting</div>
+                    <div class="summary-card-value" id="domainsWithHosting">-</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-card-title">Expiring Soon</div>
+                    <div class="summary-card-value" id="domainsExpiring">-</div>
+                </div>
             </div>
 
             <div class="refresh-controls">
@@ -177,26 +261,24 @@
             </div>
 
             <div class="card">
-                <h3>Workstations</h3>
-                <div class="workstations-table-container">
-                    <table class="workstations-table">
+                <h3>Domains</h3>
+                <div class="domains-table-container">
+                    <table class="domains-table">
                         <thead>
                             <tr>
-                                <th>WORKSTATION NAME</th>
-                                <th>CLIENT</th>
+                                <th>DOMAIN NAME</th>
+                                <th>EXPIRY DATE</th>
+                                <th>DAYS UNTIL EXPIRY</th>
                                 <th>STATUS</th>
-                                <th>UPTIME</th>
-                                <th>OPERATING SYSTEM</th>
-                                <th style="text-align: center;">OS PATCHES</th>
-                                <th style="text-align: center;">SOFTWARE PATCHES</th>
-                                <th>LAST CONTACT</th>
+                                <th>HOSTING</th>
+                                <th>HOSTING PACKAGE</th>
                             </tr>
                         </thead>
-                        <tbody id="workstationsTableBody">
+                        <tbody id="domainsTableBody">
                             <tr>
-                                <td colspan="8" class="loading-message">
+                                <td colspan="6" class="loading-message">
                                     <div class="spinner"></div>
-                                    Loading workstation data...
+                                    Loading domain data...
                                 </td>
                             </tr>
                         </tbody>
@@ -207,130 +289,100 @@
     </div>
 
     <script>
-        let workstationsData = null;
+        let domainsData = null;
         let refreshInterval = null;
         let countdownInterval = null;
         let nextRefreshTime = null;
 
-        // Get OS icon based on type
-        function getOSIcon(osType) {
-            switch(osType) {
-                case 'windows':
-                    return '<img src="https://upload.wikimedia.org/wikipedia/commons/0/0a/Unofficial_Windows_logo_variant_-_2002%E2%80%932012_%28Multicolored%29.svg" alt="Windows">';
-                case 'mac':
-                    return '<img src="https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg" alt="Mac">';
-                case 'linux':
-                    return '<img src="https://upload.wikimedia.org/wikipedia/commons/3/35/Tux.svg" alt="Linux">';
-                default:
-                    return '💻'; // Generic laptop
-            }
-        }
-
-        // Format date/time for display
-        function formatDateTime(isoString) {
+        // Format date for display
+        function formatDate(isoString) {
             if (!isoString) return 'N/A';
             const date = new Date(isoString);
-            return date.toLocaleString();
+            return date.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
         }
 
-        // Format uptime in days, hours, and minutes
-        function formatUptime(days) {
-            if (!days) return 'N/A';
-            const d = parseFloat(days);
-
-            if (d < 1) {
-                // Less than a day: show hours and minutes
-                const totalMinutes = Math.floor(d * 24 * 60);
-                const hours = Math.floor(totalMinutes / 60);
-                const minutes = totalMinutes % 60;
-                return `${hours} hours ${minutes} minutes`;
-            } else {
-                // One day or more: show days, hours, and minutes
-                const totalMinutes = Math.floor(d * 24 * 60);
-                const daysPart = Math.floor(totalMinutes / (24 * 60));
-                const hoursPart = Math.floor((totalMinutes % (24 * 60)) / 60);
-                const minutesPart = totalMinutes % 60;
-                return `${daysPart} days ${hoursPart} hours ${minutesPart} minutes`;
+        // Get status label based on status code
+        function getStatusLabel(status) {
+            switch(status) {
+                case 'active': return 'Active';
+                case 'expiring-soon': return 'Expiring Soon';
+                case 'expired': return 'Expired';
+                default: return status;
             }
         }
 
-        // Get patch pill class based on count
-        function getPatchClass(count) {
-            if (count === 0) return 'patch-none';
-            if (count <= 5) return 'patch-warning';
-            return 'patch-critical';
+        // Update summary cards
+        function updateSummaryCards(summary) {
+            document.getElementById('totalDomains').textContent = summary.totalDomains || 0;
+            document.getElementById('domainsWithHosting').textContent = summary.domainsWithHosting || 0;
+            document.getElementById('domainsExpiring').textContent = summary.domainsExpiringSoon || 0;
         }
 
-        // Update workstations table
-        function updateWorkstationsTable(workstations) {
-            const tbody = document.getElementById('workstationsTableBody');
+        // Update domains table
+        function updateDomainsTable(domains) {
+            const tbody = document.getElementById('domainsTableBody');
 
-            if (!workstations || workstations.length === 0) {
+            if (!domains || domains.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="8" class="empty-state">
-                            <div class="empty-state-icon">💻</div>
-                            <div>No workstations found</div>
+                        <td colspan="6" class="empty-state">
+                            <div class="empty-state-icon">🌐</div>
+                            <div>No domains found</div>
                         </td>
                     </tr>
                 `;
                 return;
             }
 
-            // Sort by company name (clientName) then by device name
-            const sortedWorkstations = [...workstations].sort((a, b) => {
-                const companyCompare = a.clientName.localeCompare(b.clientName);
-                if (companyCompare !== 0) return companyCompare;
-                return a.name.localeCompare(b.name);
+            // Sort by expiry date (soonest first)
+            const sortedDomains = [...domains].sort((a, b) => {
+                return a.daysUntilExpiry - b.daysUntilExpiry;
             });
 
-            tbody.innerHTML = sortedWorkstations.map(workstation => `
+            tbody.innerHTML = sortedDomains.map(domain => `
                 <tr>
                     <td>
-                        <a href="/workstation-details.html?id=${workstation.id}" style="text-decoration: none; color: var(--brand-blue); font-weight: 600;">
-                            ${workstation.name}
-                        </a>
+                        <strong>${domain.name}</strong>
                     </td>
-                    <td>${workstation.clientName}</td>
+                    <td>${formatDate(domain.expiryDate)}</td>
+                    <td>${domain.daysUntilExpiry} days</td>
                     <td>
-                        <span class="status-badge ${workstation.status === 'ONLINE' ? 'status-online' : 'status-offline'}">
-                            ${workstation.status === 'ONLINE' ? '✓ Online' : '✗ Offline'}
+                        <span class="status-badge status-${domain.status}">
+                            ${getStatusLabel(domain.status)}
                         </span>
                     </td>
-                    <td>${formatUptime(workstation.uptime)}</td>
-                    <td>${workstation.os.name}${workstation.os.version ? ' ' + workstation.os.version : ''}</td>
-                    <td style="text-align: center;">
-                        <span class="patch-pill ${getPatchClass(workstation.patches.osPending)}">
-                            ${workstation.patches.osPending}
+                    <td>
+                        <span class="hosting-badge ${domain.hasHosting ? 'has-hosting' : 'no-hosting'}">
+                            ${domain.hasHosting ? '✓ Yes' : '✗ No'}
                         </span>
                     </td>
-                    <td style="text-align: center;">
-                        <span class="patch-pill ${getPatchClass(workstation.patches.softwarePending)}">
-                            ${workstation.patches.softwarePending}
-                        </span>
-                    </td>
-                    <td>${formatDateTime(workstation.lastContact)}</td>
+                    <td>${domain.hostingPackageName || '-'}</td>
                 </tr>
             `).join('');
         }
 
-        // Load workstations data from API
-        async function loadWorkstationsData() {
+        // Load domains data from API
+        async function loadDomainsData() {
             const refreshBtn = document.getElementById('refreshBtn');
             refreshBtn.disabled = true;
 
             try {
-                const response = await authFetch('/api/workstations');
+                const response = await authFetch('/api/domains');
                 if (!response) return; // Auth failed, redirected to login
-                if (!response.ok) throw new Error('Failed to load workstation data');
+                if (!response.ok) throw new Error('Failed to load domain data');
 
-                workstationsData = await response.json();
+                domainsData = await response.json();
 
                 // Update UI
-                updateWorkstationsTable(workstationsData.workstations);
+                updateSummaryCards(domainsData.summary);
+                updateDomainsTable(domainsData.domains);
 
                 // Update last updated time
-                const lastUpdated = new Date(workstationsData.lastUpdated);
+                const lastUpdated = new Date(domainsData.lastUpdated);
                 document.getElementById('last-updated').textContent =
                     `Last updated: ${lastUpdated.toLocaleTimeString()}`;
 
@@ -338,17 +390,17 @@
                 nextRefreshTime = Date.now() + (5 * 60 * 1000); // 5 minutes from now
 
             } catch (error) {
-                console.error('Error loading workstations data:', error);
-                const tbody = document.getElementById('workstationsTableBody');
+                console.error('Error loading domains data:', error);
+                const tbody = document.getElementById('domainsTableBody');
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="8" style="text-align: center; padding: 40px;">
+                        <td colspan="6" style="text-align: center; padding: 40px;">
                             <div class="error-state">
                                 <div class="state-icon">⚠️</div>
-                                <div>Failed to load workstation data</div>
+                                <div>Failed to load domain data</div>
                                 <div style="margin-top: 10px; font-size: 13px;">${error.message}</div>
                                 <div style="margin-top: 15px;">
-                                    <button onclick="loadWorkstationsData()" class="refresh-btn">Retry</button>
+                                    <button onclick="loadDomainsData()" class="refresh-btn">Retry</button>
                                 </div>
                             </div>
                         </td>
@@ -372,14 +424,14 @@
 
             // Auto-refresh when countdown reaches 0
             if (remaining === 0) {
-                loadWorkstationsData();
+                loadDomainsData();
             }
         }
 
         // Start auto-refresh
         function startAutoRefresh() {
             // Refresh every 5 minutes
-            refreshInterval = setInterval(loadWorkstationsData, 5 * 60 * 1000);
+            refreshInterval = setInterval(loadDomainsData, 5 * 60 * 1000);
 
             // Update countdown every second
             countdownInterval = setInterval(updateCountdown, 1000);
@@ -401,10 +453,10 @@
             setupLogoutButton();
 
             // Setup refresh button
-            document.getElementById('refreshBtn').addEventListener('click', loadWorkstationsData);
+            document.getElementById('refreshBtn').addEventListener('click', loadDomainsData);
 
-            // Load workstations data
-            await loadWorkstationsData();
+            // Load domains data
+            await loadDomainsData();
 
             // Start auto-refresh
             startAutoRefresh();
