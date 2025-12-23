@@ -20,7 +20,6 @@ let dataCache = {
 async function getNinjaOneToken() {
   // Return cached token if still valid
   if (tokenCache.token && tokenCache.expiresAt && Date.now() < tokenCache.expiresAt) {
-    logger.info('Using cached NinjaOne token');
     return tokenCache.token;
   }
 
@@ -33,7 +32,6 @@ async function getNinjaOneToken() {
   }
 
   try {
-    logger.info('Requesting new NinjaOne OAuth token');
 
     const response = await axios.post(
       `${baseUrl}/ws/oauth/token`,
@@ -56,7 +54,6 @@ async function getNinjaOneToken() {
     tokenCache.token = access_token;
     tokenCache.expiresAt = Date.now() + ((expires_in - 300) * 1000);
 
-    logger.info('Successfully obtained NinjaOne token', { expiresIn: expires_in });
     return access_token;
   } catch (error) {
     logger.error('Failed to get NinjaOne token', {
@@ -111,23 +108,18 @@ function isCacheValid() {
 async function getServers() {
   // Return cached data if valid
   if (isCacheValid()) {
-    logger.info('Returning cached server data');
     return dataCache.data;
   }
-
-  logger.info('Fetching fresh server data from NinjaOne');
 
   try {
     // Fetch devices and organizations in parallel
     const [allDevices, organizations] = await Promise.all([
       ninjaRequest('/v2/devices'),
       ninjaRequest('/v2/organizations').catch(err => {
-        logger.error('Failed to fetch organizations', { error: err.message });
+        logger.error('NinjaOne: Failed to fetch organizations', { error: err.message });
         return [];
       })
     ]);
-
-    logger.info(`Found ${allDevices.length} total devices`);
 
     // Filter for servers (Windows Server or Linux Server in node class/role)
     const devices = allDevices.filter(device => {
@@ -139,8 +131,6 @@ async function getServers() {
              nodeClass.includes('windows server') ||
              nodeClass.includes('linux server');
     });
-
-    logger.info(`Found ${devices.length} servers after filtering`);
 
     // Create organization lookup map
     const orgMap = new Map();
@@ -308,7 +298,7 @@ async function getServers() {
     dataCache.data = result;
     dataCache.timestamp = Date.now();
 
-    logger.info('Successfully fetched and cached server data', {
+    logger.info('NinjaOne: Fetched server data', {
       total: result.summary.totalServers,
       online: result.summary.onlineServers,
       needingPatches: result.summary.serversNeedingPatches
@@ -316,7 +306,7 @@ async function getServers() {
 
     return result;
   } catch (error) {
-    logger.error('Failed to fetch server data', { error: error.message });
+    logger.error('NinjaOne: Failed to fetch server data', { error: error.message });
     throw new Error('Failed to fetch server data from NinjaOne');
   }
 }
@@ -325,8 +315,6 @@ async function getServers() {
  * Get detailed information for a specific server
  */
 async function getServerDetails(deviceId) {
-  logger.info(`Fetching details for server ${deviceId}`);
-
   try {
     const [device, osData, computerSystemsData, osPatchData, softwarePatchData, dashboardUrl, organizations] = await Promise.all([
       ninjaRequest(`/v2/device/${deviceId}`),
@@ -354,46 +342,17 @@ async function getServerDetails(deviceId) {
     const softwarePending = softwarePatches.filter(p => p.status !== 'INSTALLED');
 
     // Log patch data for debugging
-    logger.info(`Patch data for device ${deviceId}:`, {
-      totalOsPatches: osPatches.length,
-      totalSoftwarePatches: softwarePatches.length,
-      osPendingCount: osPending.length,
-      softwarePendingCount: softwarePending.length,
-      sampleOsPatch: osPatches[0] ? Object.keys(osPatches[0]) : [],
-      sampleSoftwarePatch: softwarePatches[0] ? Object.keys(softwarePatches[0]) : []
-    });
-
-    // Log device and computer system fields for debugging
-    logger.info(`Device ${deviceId} fields:`, {
-      deviceFields: Object.keys(device),
-      computerSystemFields: computerSystem ? Object.keys(computerSystem) : [],
-      hasComputerSystem: !!computerSystem,
-      osFields: os ? Object.keys(os) : [],
-      deviceSystemFields: device.system ? Object.keys(device.system) : [],
-      deviceOsFields: device.os ? Object.keys(device.os) : [],
-      // Check for any boot-related fields
-      deviceLastRebootTime: device.lastRebootTime,
-      osBootTime: os?.bootTime,
-      osLastBootTime: os?.lastBootTime,
-      osUptime: os?.uptime,
-      deviceSystemUptime: device.system?.uptime,
-      computerSystemTimestamp: computerSystem?.timestamp
-    });
-
     // Calculate uptime from OS data (lastBootTime is a Unix timestamp in seconds)
     let uptime = null;
     if (os?.lastBootTime) {
       const bootTime = new Date(os.lastBootTime * 1000); // Convert to milliseconds
       uptime = (Date.now() - bootTime.getTime()) / (1000 * 60 * 60 * 24);
-      logger.info(`Calculated uptime from os.lastBootTime: ${uptime} days`);
     } else if (device.os?.lastBootTime) {
       const bootTime = new Date(device.os.lastBootTime * 1000);
       uptime = (Date.now() - bootTime.getTime()) / (1000 * 60 * 60 * 24);
-      logger.info(`Calculated uptime from device.os.lastBootTime: ${uptime} days`);
     } else if (computerSystem?.bootTime) {
       const bootTime = new Date(computerSystem.bootTime * 1000);
       uptime = (Date.now() - bootTime.getTime()) / (1000 * 60 * 60 * 24);
-      logger.info(`Calculated uptime from computerSystem.bootTime: ${uptime} days`);
     }
 
     // Convert Unix timestamp to ISO string
@@ -458,16 +417,14 @@ async function getServerDetails(deviceId) {
  * Get all NinjaOne organizations
  */
 async function getOrganizations() {
-  logger.info('Fetching NinjaOne organizations');
-
   try {
     const organizations = await ninjaRequest('/v2/organizations');
 
-    logger.info(`Found ${organizations?.length || 0} NinjaOne organizations`);
+    logger.info('NinjaOne: Fetched organizations', { count: organizations?.length || 0 });
 
     return organizations || [];
   } catch (error) {
-    logger.error('Failed to fetch NinjaOne organizations', { error: error.message });
+    logger.error('NinjaOne: Failed to fetch organizations', { error: error.message });
     throw new Error('Failed to fetch organizations from NinjaOne');
   }
 }
@@ -476,30 +433,15 @@ async function getOrganizations() {
  * Get all workstations with health and patch information
  */
 async function getWorkstations() {
-  logger.info('Fetching workstation data from NinjaOne');
-
   try {
     // Fetch devices and organizations in parallel
     const [allDevices, organizations] = await Promise.all([
       ninjaRequest('/v2/devices'),
       ninjaRequest('/v2/organizations').catch(err => {
-        logger.error('Failed to fetch organizations', { error: err.message });
+        logger.error('NinjaOne: Failed to fetch organizations', { error: err.message });
         return [];
       })
     ]);
-
-    logger.info(`Found ${allDevices.length} total devices`);
-
-    // Log all unique device roles and classes for debugging
-    const uniqueRoles = new Set();
-    const uniqueClasses = new Set();
-    allDevices.forEach(device => {
-      if (device.nodeRolePolicyName) uniqueRoles.add(device.nodeRolePolicyName);
-      if (device.roleName) uniqueRoles.add(device.roleName);
-      if (device.nodeClass) uniqueClasses.add(device.nodeClass);
-    });
-    logger.info('Available device roles:', { roles: Array.from(uniqueRoles) });
-    logger.info('Available device classes:', { classes: Array.from(uniqueClasses) });
 
     // Filter for workstations (WINDOWS_WORKSTATION and MAC, exclude servers)
     const devices = allDevices.filter(device => {
@@ -510,8 +452,6 @@ async function getWorkstations() {
       return (nodeClass === 'WINDOWS_WORKSTATION' || nodeClass === 'MAC') &&
              !nodeClass.includes('SERVER');
     });
-
-    logger.info(`Found ${devices.length} workstations after filtering`);
 
     // Create organization lookup map
     const orgMap = new Map();
@@ -673,7 +613,7 @@ async function getWorkstations() {
       lastUpdated: new Date().toISOString()
     };
 
-    logger.info('Successfully fetched workstation data', {
+    logger.info('NinjaOne: Fetched workstation data', {
       total: result.summary.totalWorkstations,
       online: result.summary.onlineWorkstations,
       needingPatches: result.summary.workstationsNeedingPatches
@@ -681,7 +621,7 @@ async function getWorkstations() {
 
     return result;
   } catch (error) {
-    logger.error('Failed to fetch workstation data', { error: error.message });
+    logger.error('NinjaOne: Failed to fetch workstation data', { error: error.message });
     throw new Error('Failed to fetch workstation data from NinjaOne');
   }
 }

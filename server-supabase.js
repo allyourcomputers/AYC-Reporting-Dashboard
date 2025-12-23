@@ -17,35 +17,24 @@ const app = express();
 const PORT = process.env.PORT || 3100;
 
 // Request logging middleware - log ALL incoming requests
+// Log only errors and slow requests
 app.use((req, res, next) => {
   const startTime = Date.now();
 
-  // Log request
-  logger.info('Incoming request', {
-    method: req.method,
-    url: req.url,
-    path: req.path,
-    query: req.query,
-    headers: {
-      host: req.headers.host,
-      origin: req.headers.origin,
-      referer: req.headers.referer,
-      userAgent: req.headers['user-agent']
-    },
-    ip: req.ip || req.connection.remoteAddress
-  });
-
-  // Capture response
   const originalSend = res.send;
   res.send = function(data) {
     const duration = Date.now() - startTime;
-    logger.info('Response sent', {
-      method: req.method,
-      url: req.url,
-      statusCode: res.statusCode,
-      duration: `${duration}ms`,
-      contentLength: data?.length || 0
-    });
+
+    // Log slow requests (>2s) or errors
+    if (duration > 2000 || res.statusCode >= 400) {
+      logger.info('Request completed', {
+        method: req.method,
+        url: req.url,
+        statusCode: res.statusCode,
+        duration: `${duration}ms`
+      });
+    }
+
     originalSend.call(this, data);
   };
 
@@ -129,21 +118,8 @@ async function requireAuth(req, res, next) {
 // Serve Supabase config to frontend (public endpoint)
 // IMPORTANT: This sends the ANON key to the frontend, not the service role key
 app.get('/api/config', (req, res) => {
-  logger.info('/api/config endpoint called', {
-    supabaseUrlSet: !!SUPABASE_URL,
-    supabaseAnonKeySet: !!SUPABASE_ANON_KEY,
-    supabaseUrlPreview: SUPABASE_URL ? SUPABASE_URL.substring(0, 30) + '...' : 'NOT SET',
-    requestHeaders: {
-      host: req.headers.host,
-      origin: req.headers.origin
-    }
-  });
-
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-    logger.error('/api/config missing required environment variables', {
-      SUPABASE_URL: !!SUPABASE_URL,
-      SUPABASE_ANON_KEY: !!SUPABASE_ANON_KEY
-    });
+    logger.error('Config endpoint: Missing required environment variables');
     return res.status(500).json({ error: 'Server configuration error' });
   }
 
