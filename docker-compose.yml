@@ -20,6 +20,15 @@ services:
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
       - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
 
+      # NinjaOne Configuration
+      - NINJA_CLIENT_ID=${NINJA_CLIENT_ID}
+      - NINJA_CLIENT_SECRET=${NINJA_CLIENT_SECRET}
+      - NINJA_BASE_URL=${NINJA_BASE_URL}
+
+      # 20i API Configuration
+      - TWENTYI_API_KEY=${TWENTYI_API_KEY}
+      - TWENTYI_OAUTH_KEY=${TWENTYI_OAUTH_KEY}
+
       # Server Configuration
       - PORT=3100
       - NODE_ENV=production
