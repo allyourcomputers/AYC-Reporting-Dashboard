@@ -24,7 +24,6 @@ let dataCache = {
 async function get20iToken() {
   // Return cached token if still valid
   if (tokenCache.token && tokenCache.expiresAt && Date.now() < tokenCache.expiresAt) {
-    logger.info('Using cached 20i token');
     return tokenCache.token;
   }
 
@@ -34,8 +33,6 @@ async function get20iToken() {
   if (!apiKey) {
     throw new Error('20i API credentials not configured in environment variables');
   }
-
-  logger.info('Configuring 20i API authentication');
 
   // TODO: Verify 20i authentication method
   // For now, use API key directly as Bearer token
@@ -97,22 +94,19 @@ function isCacheValid() {
 async function getDomains() {
   // Return cached data if valid
   if (isCacheValid()) {
-    logger.info('Returning cached 20i domain data');
     return dataCache.domains;
   }
-
-  logger.info('Fetching fresh 20i domain data');
 
   try {
     // TODO: Verify correct endpoints for domains and packages
     // These endpoints need to be confirmed with 20i API documentation
     const [domainsResponse, packagesResponse] = await Promise.all([
       twentyiRequest('/reseller/domains').catch(err => {
-        logger.error('Failed to fetch domains', { error: err.message });
+        logger.error('20i: Failed to fetch domains', { error: err.message });
         return { result: [] };
       }),
       twentyiRequest('/reseller/packages').catch(err => {
-        logger.error('Failed to fetch packages', { error: err.message });
+        logger.error('20i: Failed to fetch packages', { error: err.message });
         return { result: [] };
       })
     ]);
@@ -121,11 +115,6 @@ async function getDomains() {
     // These property names may need to be changed
     const domains = domainsResponse.result || domainsResponse.domains || [];
     const packages = packagesResponse.result || packagesResponse.packages || [];
-
-    logger.info('Fetched 20i data', {
-      domainsCount: domains.length,
-      packagesCount: packages.length
-    });
 
     // Build package lookup map for O(1) access
     const packageMap = new Map();
@@ -192,15 +181,15 @@ async function getDomains() {
     dataCache.domains = result;
     dataCache.timestamp = Date.now();
 
-    logger.info('Successfully fetched and cached 20i domain data', {
+    logger.info('20i: Fetched domain data', {
       total: summary.totalDomains,
       withHosting: summary.domainsWithHosting,
-      expiringSoon: summary.domainsExpiringSoon
+      expiring: summary.domainsExpiringSoon
     });
 
     return result;
   } catch (error) {
-    logger.error('Failed to fetch 20i domain data', { error: error.message });
+    logger.error('20i: Failed to fetch domain data', { error: error.message });
     throw new Error('Failed to fetch domain data from 20i');
   }
 }
@@ -211,8 +200,6 @@ async function getDomains() {
  * Returns list of StackCP users that can be mapped to companies
  */
 async function getStackcpUsers() {
-  logger.info('Fetching 20i StackCP users');
-
   try {
     // TODO: Verify correct endpoint for listing StackCP users
     const response = await twentyiRequest('/reseller/users');
@@ -220,7 +207,7 @@ async function getStackcpUsers() {
     // TODO: Adjust based on actual API response structure
     const users = response.result || response.users || [];
 
-    logger.info(`Found ${users.length} 20i StackCP users`);
+    logger.info('20i: Fetched StackCP users', { count: users.length });
 
     return users.map(user => ({
       // TODO: Adjust field names based on actual API response
@@ -228,7 +215,7 @@ async function getStackcpUsers() {
       name: user.name || user.username || user.email || user.id?.toString()
     }));
   } catch (error) {
-    logger.error('Failed to fetch StackCP users', { error: error.message });
+    logger.error('20i: Failed to fetch StackCP users', { error: error.message });
     throw new Error('Failed to fetch StackCP users from 20i');
   }
 }

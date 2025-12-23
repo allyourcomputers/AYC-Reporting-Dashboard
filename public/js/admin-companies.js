@@ -126,7 +126,7 @@ async function load20iStackcpUsers() {
       return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
     });
   } catch (error) {
-    console.error('Error loading 20i StackCP users:', error);
+    console.error('20i: Error loading StackCP users:', error);
   }
 }
 
@@ -723,7 +723,7 @@ async function save20iMappings() {
     close20iModal();
     await loadCompanies();
   } catch (error) {
-    console.error('Error saving 20i mappings:', error);
+    console.error('20i: Error saving mappings:', error);
     alert('Error: ' + error.message);
   }
 }
