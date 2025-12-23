@@ -3,7 +3,8 @@ node_modules
 npm-debug.log
 
 # Environment files (will be provided at runtime)
-.env
+# Note: .env is included in Docker image for dotenv to work
+# .env
 .env.local
 .env.*.local
 
