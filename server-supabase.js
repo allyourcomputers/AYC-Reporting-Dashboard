@@ -826,9 +826,9 @@ app.get('/api/domains', requireAuth, injectCompanyContext, async (req, res) => {
         });
       }
 
-      // Filter domains by StackCP user ID
+      // Filter domains by StackCP user ID (domains can have multiple stack users)
       const filteredDomains = domainsData.domains.filter(domain =>
-        allowedUserIds.includes(domain.stackcpUserId)
+        domain.stackcpUsers && domain.stackcpUsers.some(userId => allowedUserIds.includes(userId))
       );
 
       // Recalculate summary for filtered domains

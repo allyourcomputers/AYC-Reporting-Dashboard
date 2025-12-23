@@ -16,10 +16,7 @@ let dataCache = {
 
 /**
  * Get authentication token for 20i API
- *
- * NOTE: 20i API authentication method needs verification
- * TODO: Verify if 20i uses Bearer token, API key, or OAuth2
- * Current implementation assumes Bearer token with API key
+ * Uses base64-encoded API key as Bearer token
  */
 async function get20iToken() {
   // Return cached token if still valid
@@ -28,15 +25,13 @@ async function get20iToken() {
   }
 
   const apiKey = process.env.TWENTYI_API_KEY;
-  const oauthKey = process.env.TWENTYI_OAUTH_KEY;
 
   if (!apiKey) {
     throw new Error('20i API credentials not configured in environment variables');
   }
 
-  // TODO: Verify 20i authentication method
-  // For now, use API key directly as Bearer token
-  tokenCache.token = apiKey;
+  // 20i API requires base64-encoded API key as Bearer token
+  tokenCache.token = Buffer.from(apiKey).toString('base64');
   tokenCache.expiresAt = Date.now() + (24 * 60 * 60 * 1000); // 24 hours
 
   return tokenCache.token;
@@ -98,43 +93,36 @@ async function getDomains() {
   }
 
   try {
-    // TODO: Verify correct endpoints for domains and packages
-    // These endpoints need to be confirmed with 20i API documentation
+    // Fetch domains and packages in parallel
     const [domainsResponse, packagesResponse] = await Promise.all([
       twentyiRequest('/reseller/domains').catch(err => {
         logger.error('20i: Failed to fetch domains', { error: err.message });
-        return { result: [] };
+        return [];
       }),
       twentyiRequest('/reseller/packages').catch(err => {
         logger.error('20i: Failed to fetch packages', { error: err.message });
-        return { result: [] };
+        return [];
       })
     ]);
 
-    // TODO: Adjust based on actual API response structure
-    // These property names may need to be changed
-    const domains = domainsResponse.result || domainsResponse.domains || [];
-    const packages = packagesResponse.result || packagesResponse.packages || [];
+    const domains = Array.isArray(domainsResponse) ? domainsResponse : [];
+    const packages = Array.isArray(packagesResponse) ? packagesResponse : [];
 
-    // Build package lookup map for O(1) access
-    const packageMap = new Map();
+    // Build package lookup map by domain name for O(1) access
+    const packageByDomainName = new Map();
     packages.forEach(pkg => {
-      // TODO: Verify correct ID field name
-      const pkgId = pkg.id || pkg.package_id || pkg.packageId;
-      packageMap.set(pkgId, pkg);
+      // Packages have a 'names' array containing domain names
+      if (pkg.names && Array.isArray(pkg.names)) {
+        pkg.names.forEach(domainName => {
+          packageByDomainName.set(domainName, pkg);
+        });
+      }
     });
 
     // Transform and enrich domains with hosting status
     const enrichedDomains = domains.map(domain => {
-      // TODO: Adjust field names based on actual API response
-      const domainId = domain.id || domain.domain_id;
-      const domainName = domain.name || domain.domain_name || domain.domain;
-      const expiryDateRaw = domain.expiry_date || domain.expiryDate || domain.expires;
-      const packageId = domain.package_id || domain.packageId;
-      const stackcpUserId = domain.stackcp_user_id || domain.user_id || domain.userId;
-
-      // Parse expiry date
-      const expiryDate = new Date(expiryDateRaw);
+      const domainName = domain.name;
+      const expiryDate = new Date(domain.expiryDate);
       const now = new Date();
       const daysUntilExpiry = Math.ceil((expiryDate - now) / (1000 * 60 * 60 * 24));
 
@@ -146,19 +134,29 @@ async function getDomains() {
         status = 'expiring-soon';
       }
 
-      // Check for hosting package
-      const hostingPackage = packageMap.get(packageId);
+      // Check for hosting package by domain name
+      const hostingPackage = packageByDomainName.get(domainName);
+
+      // Extract stack users from package
+      let stackcpUsers = [];
+      if (hostingPackage && hostingPackage.stackUsers && Array.isArray(hostingPackage.stackUsers)) {
+        // Stack users are in format "stack-user:3205128"
+        stackcpUsers = hostingPackage.stackUsers.map(su => {
+          const match = su.match(/stack-user:(\d+)/);
+          return match ? match[1] : su;
+        });
+      }
 
       return {
-        id: domainId,
+        id: domain.id,
         name: domainName,
         expiryDate: expiryDate.toISOString(),
         daysUntilExpiry,
         status,
         hasHosting: !!hostingPackage,
         hostingPackageId: hostingPackage?.id || null,
-        hostingPackageName: hostingPackage?.name || null,
-        stackcpUserId: stackcpUserId
+        hostingPackageName: hostingPackage?.packageTypeName || null,
+        stackcpUsers: stackcpUsers // Array of stack user IDs
       };
     });
 
@@ -197,23 +195,46 @@ async function getDomains() {
 /**
  * Get available StackCP users (for admin mapping UI)
  *
- * Returns list of StackCP users that can be mapped to companies
+ * Returns list of StackCP users extracted from packages
  */
 async function getStackcpUsers() {
   try {
-    // TODO: Verify correct endpoint for listing StackCP users
-    const response = await twentyiRequest('/reseller/users');
+    // Fetch all packages to extract stack users
+    const packagesResponse = await twentyiRequest('/reseller/packages');
+    const packages = Array.isArray(packagesResponse) ? packagesResponse : [];
 
-    // TODO: Adjust based on actual API response structure
-    const users = response.result || response.users || [];
+    // Extract unique stack user IDs from all packages
+    const stackUserMap = new Map();
+    packages.forEach(pkg => {
+      if (pkg.stackUsers && Array.isArray(pkg.stackUsers)) {
+        pkg.stackUsers.forEach(stackUser => {
+          // Stack users are in format "stack-user:3205128"
+          const match = stackUser.match(/stack-user:(\d+)/);
+          if (match) {
+            const userId = match[1];
+            // Use package name as a reference for the user
+            if (!stackUserMap.has(userId)) {
+              stackUserMap.set(userId, {
+                id: userId,
+                name: `Stack User ${userId}`,
+                packages: []
+              });
+            }
+            stackUserMap.get(userId).packages.push(pkg.name);
+          }
+        });
+      }
+    });
+
+    // Convert map to array and enrich user names with package info
+    const users = Array.from(stackUserMap.values()).map(user => ({
+      id: user.id,
+      name: `Stack User ${user.id} (${user.packages.length} package${user.packages.length !== 1 ? 's' : ''})`
+    }));
 
     logger.info('20i: Fetched StackCP users', { count: users.length });
 
-    return users.map(user => ({
-      // TODO: Adjust field names based on actual API response
-      id: (user.id || user.user_id || user.userId)?.toString(),
-      name: user.name || user.username || user.email || user.id?.toString()
-    }));
+    return users;
   } catch (error) {
     logger.error('20i: Failed to fetch StackCP users', { error: error.message });
     throw new Error('Failed to fetch StackCP users from 20i');
