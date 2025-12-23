@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stack User Domain Selector Example</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .container {
+            border: 1px solid #ddd;
+            padding: 20px;
+            border-radius: 8px;
+            background: #f9f9f9;
+        }
+        label {
+            display: block;
+            margin-top: 15px;
+            font-weight: bold;
+        }
+        input, select {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            margin-top: 15px;
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #e9ecef;
+            border-radius: 4px;
+            display: none;
+        }
+        .result.show {
+            display: block;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Stack User Domain Selector Example</h1>
+        <p>This example demonstrates how to use the Stack User domain mapping APIs.</p>
+
+        <!-- Example 1: Load domains for a Stack User -->
+        <div style="margin-bottom: 40px;">
+            <h2>1. Load Domains for Stack User</h2>
+            <label for="stackUserId">Stack User ID:</label>
+            <input type="text" id="stackUserId" placeholder="e.g., 907713" value="907713">
+            <button onclick="loadDomains()">Load Domains</button>
+            <div id="domainsResult" class="result"></div>
+        </div>
+
+        <!-- Example 2: Validate domain ownership -->
+        <div style="margin-bottom: 40px;">
+            <h2>2. Validate Domain Ownership</h2>
+            <label for="validateStackUserId">Stack User ID:</label>
+            <input type="text" id="validateStackUserId" placeholder="e.g., 907713" value="907713">
+            <label for="domainName">Domain Name:</label>
+            <input type="text" id="domainName" placeholder="e.g., allyourcomputers.co.uk" value="allyourcomputers.co.uk">
+            <button onclick="validateDomain()">Validate</button>
+            <div id="validateResult" class="result"></div>
+        </div>
+
+        <!-- Example 3: List all Stack Users -->
+        <div>
+            <h2>3. List All Stack Users</h2>
+            <button onclick="loadAllStackUsers()">Load All Stack Users</button>
+            <div id="allUsersResult" class="result"></div>
+        </div>
+    </div>
+
+    <script>
+        // Note: In production, you would get the auth token from your authentication system
+        const API_BASE = window.location.origin;
+        const AUTH_TOKEN = localStorage.getItem('supabase_token'); // Or however you store your token
+
+        async function apiRequest(endpoint) {
+            const response = await fetch(`${API_BASE}${endpoint}`, {
+                headers: {
+                    'Authorization': `Bearer ${AUTH_TOKEN}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`API request failed: ${response.statusText}`);
+            }
+
+            return response.json();
+        }
+
+        async function loadDomains() {
+            const stackUserId = document.getElementById('stackUserId').value;
+            const resultDiv = document.getElementById('domainsResult');
+
+            if (!stackUserId) {
+                resultDiv.className = 'result show error';
+                resultDiv.innerHTML = 'Please enter a Stack User ID';
+                return;
+            }
+
+            try {
+                const data = await apiRequest(`/api/stack-users/${stackUserId}/domains`);
+
+                resultDiv.className = 'result show success';
+                resultDiv.innerHTML = `
+                    <h3>Domains for Stack User ${data.stackUserId}:</h3>
+                    <ul>
+                        ${data.domains.map(d => `<li>${d}</li>`).join('')}
+                    </ul>
+                    <details>
+                        <summary>Full Details</summary>
+                        <pre>${JSON.stringify(data.details, null, 2)}</pre>
+                    </details>
+                `;
+            } catch (error) {
+                resultDiv.className = 'result show error';
+                resultDiv.innerHTML = `Error: ${error.message}`;
+            }
+        }
+
+        async function validateDomain() {
+            const stackUserId = document.getElementById('validateStackUserId').value;
+            const domainName = document.getElementById('domainName').value;
+            const resultDiv = document.getElementById('validateResult');
+
+            if (!stackUserId || !domainName) {
+                resultDiv.className = 'result show error';
+                resultDiv.innerHTML = 'Please enter both Stack User ID and Domain Name';
+                return;
+            }
+
+            try {
+                const data = await apiRequest(`/api/stack-users/validate-domain?stackUserId=${stackUserId}&domainName=${domainName}`);
+
+                if (data.valid) {
+                    resultDiv.className = 'result show success';
+                    resultDiv.innerHTML = `
+                        <h3>✓ Valid!</h3>
+                        <p>Stack User ${stackUserId} owns ${domainName}</p>
+                        <details>
+                            <summary>Mapping Details</summary>
+                            <pre>${JSON.stringify(data.mapping, null, 2)}</pre>
+                        </details>
+                    `;
+                } else {
+                    resultDiv.className = 'result show error';
+                    resultDiv.innerHTML = `
+                        <h3>✗ Invalid</h3>
+                        <p>Stack User ${stackUserId} does NOT own ${domainName}</p>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.className = 'result show error';
+                resultDiv.innerHTML = `Error: ${error.message}`;
+            }
+        }
+
+        async function loadAllStackUsers() {
+            const resultDiv = document.getElementById('allUsersResult');
+
+            try {
+                const data = await apiRequest('/api/stack-users/all');
+
+                resultDiv.className = 'result show success';
+                resultDiv.innerHTML = `
+                    <h3>All Stack Users (Total: ${data.total}):</h3>
+                    <ul>
+                        ${data.stackUsers.map(user => `
+                            <li>
+                                <strong>Stack User ${user.stackUserId}</strong>
+                                <br>Domains: ${user.domains.join(', ')}
+                                <br>WordPress sites: ${user.wordpressCount}
+                            </li>
+                        `).join('')}
+                    </ul>
+                `;
+            } catch (error) {
+                resultDiv.className = 'result show error';
+                resultDiv.innerHTML = `Error: ${error.message}`;
+            }
+        }
+
+        // React/Next.js example
+        console.log(`
+==============================================
+REACT/NEXT.JS USAGE EXAMPLE
+==============================================
+
+// Component for domain selection
+import { useState, useEffect } from 'react';
+
+function DomainSelector({ stackUserId }) {
+  const [domains, setDomains] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadDomains() {
+      const response = await fetch(
+        \`/api/stack-users/\${stackUserId}/domains\`,
+        {
+          headers: {
+            'Authorization': \`Bearer \${authToken}\`
+          }
+        }
+      );
+      const data = await response.json();
+      setDomains(data.domains);
+      setLoading(false);
+    }
+
+    if (stackUserId) {
+      loadDomains();
+    }
+  }, [stackUserId]);
+
+  if (loading) return <div>Loading...</div>;
+
+  return (
+    <select>
+      <option value="">Select a domain...</option>
+      {domains.map(domain => (
+        <option key={domain} value={domain}>
+          {domain}
+        </option>
+      ))}
+    </select>
+  );
+}
+        `);
+    </script>
+</body>
+</html>
