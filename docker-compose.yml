@@ -10,26 +10,7 @@ services:
     ports:
       - "${PORT:-3100}:3100"
     environment:
-      # HaloPSA API Configuration
-      - HALO_API_URL=${HALO_API_URL}
-      - HALO_CLIENT_ID=${HALO_CLIENT_ID}
-      - HALO_CLIENT_SECRET=${HALO_CLIENT_SECRET}
-
-      # Supabase Configuration
-      - SUPABASE_URL=${SUPABASE_URL}
-      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
-      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
-
-      # NinjaOne Configuration
-      - NINJA_CLIENT_ID=${NINJA_CLIENT_ID}
-      - NINJA_CLIENT_SECRET=${NINJA_CLIENT_SECRET}
-      - NINJA_BASE_URL=${NINJA_BASE_URL}
-
-      # 20i API Configuration
-      - TWENTYI_API_KEY=${TWENTYI_API_KEY}
-      - TWENTYI_OAUTH_KEY=${TWENTYI_OAUTH_KEY}
-
-      # Server Configuration
+      # Server Configuration (override .env defaults)
       - PORT=3100
       - NODE_ENV=production
     env_file:
