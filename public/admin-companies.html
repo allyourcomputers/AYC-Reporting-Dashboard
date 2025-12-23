@@ -375,6 +375,7 @@
             </p>
 
             <button class="select-all-btn" onclick="toggleSelectAll20iUsers()">Toggle Select All</button>
+            <button class="select-all-btn" style="margin-left: 10px; background: #5469d4;" onclick="open20iNameEditorModal()">✏️ Edit Names</button>
 
             <div class="form-group">
                 <div id="twentyiCheckboxes" class="form-checkbox-group">
@@ -385,6 +386,25 @@
             <div class="modal-actions">
                 <button class="btn btn-primary" onclick="save20iMappings()">Save Mappings</button>
                 <button class="btn btn-secondary" onclick="close20iModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit 20i StackCP User Names Modal -->
+    <div id="twentyiNameEditorModal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">Edit StackCP User Names</div>
+            <p style="color: #666; font-size: 14px; margin-bottom: 20px;">
+                Give friendly names to your StackCP users for easier identification.
+            </p>
+
+            <div id="twentyiNameEditorList" style="max-height: 400px; overflow-y: auto;">
+                <!-- Populated by JavaScript -->
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn btn-primary" onclick="save20iCustomNames()">Save Names</button>
+                <button class="btn btn-secondary" onclick="close20iNameEditorModal()">Cancel</button>
             </div>
         </div>
     </div>

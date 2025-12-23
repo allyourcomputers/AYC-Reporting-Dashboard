@@ -386,14 +386,83 @@ router.get('/available-ninjaone-orgs', requireSuperAdmin, async (req, res) => {
 /**
  * GET /api/admin/companies/available-20i-stackcp-users
  * Get all available 20i StackCP users for mapping
+ * Includes custom names from database if they exist
  */
 router.get('/available-20i-stackcp-users', requireSuperAdmin, async (req, res) => {
   try {
     const stackcpUsers = await twentyiClient.getStackcpUsers();
-    res.json({ stackcpUsers });
+
+    // Fetch custom names from database
+    const { data: customNames, error: dbError } = await supabase
+      .from('company_20i_stackcp_users')
+      .select('stackcp_user_id, stackcp_user_name');
+
+    if (dbError) {
+      logger.error('Failed to fetch custom names', { error: dbError });
+    }
+
+    // Build map of custom names
+    const customNameMap = new Map();
+    if (customNames) {
+      customNames.forEach(entry => {
+        if (entry.stackcp_user_name) {
+          customNameMap.set(entry.stackcp_user_id, entry.stackcp_user_name);
+        }
+      });
+    }
+
+    // Merge custom names with stack user data
+    const enrichedUsers = stackcpUsers.map(user => ({
+      id: user.id,
+      name: customNameMap.get(user.id) || user.name,
+      defaultName: user.name, // Keep original for reference
+      hasCustomName: customNameMap.has(user.id)
+    }));
+
+    res.json({ stackcpUsers: enrichedUsers });
   } catch (error) {
     logger.error('Error fetching 20i StackCP users', { error: error.message });
     res.status(500).json({ error: 'Failed to fetch 20i StackCP users' });
+  }
+});
+
+/**
+ * POST /api/admin/companies/20i-custom-names
+ * Update custom names for 20i StackCP users globally
+ *
+ * Body:
+ * {
+ *   customNames: [{ id: string, name: string }]
+ * }
+ */
+router.post('/20i-custom-names', requireSuperAdmin, async (req, res) => {
+  try {
+    const { customNames } = req.body;
+
+    if (!Array.isArray(customNames)) {
+      return res.status(400).json({ error: 'customNames must be an array' });
+    }
+
+    // Update all existing mappings with new custom names
+    const updates = customNames.map(async ({ id, name }) => {
+      const { error } = await supabase
+        .from('company_20i_stackcp_users')
+        .update({ stackcp_user_name: name })
+        .eq('stackcp_user_id', id);
+
+      if (error) {
+        logger.error('Failed to update custom name', { error, userId: id });
+        throw error;
+      }
+    });
+
+    await Promise.all(updates);
+
+    logger.info('20i custom names updated', { count: customNames.length });
+    res.json({ success: true });
+  } catch (error) {
+    logger.error('Error updating 20i custom names', { error: error.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 

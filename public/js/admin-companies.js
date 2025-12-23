@@ -728,5 +728,110 @@ async function save20iMappings() {
   }
 }
 
+/**
+ * Open 20i name editor modal
+ */
+function open20iNameEditorModal() {
+  const modal = document.getElementById('twentyiNameEditorModal');
+  const list = document.getElementById('twentyiNameEditorList');
+
+  // Render editable list
+  list.innerHTML = available20iUsers.map(user => `
+    <div style="margin-bottom: 15px; padding: 15px; background: #f8f9fa; border-radius: 6px;">
+      <div style="font-size: 12px; color: #666; margin-bottom: 5px;">
+        Stack User ID: ${user.id} ${user.hasCustomName ? '(has custom name)' : ''}
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <input
+          type="text"
+          id="name-${user.id}"
+          class="form-input"
+          value="${user.name}"
+          placeholder="Enter a friendly name..."
+          style="flex: 1;"
+        >
+        <button
+          onclick="clearCustomName('${user.id}')"
+          style="padding: 8px 12px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;"
+        >Reset</button>
+      </div>
+      <div style="font-size: 11px; color: #999; margin-top: 5px;">
+        Default: ${user.defaultName}
+      </div>
+    </div>
+  `).join('');
+
+  modal.style.display = 'flex';
+}
+
+/**
+ * Close 20i name editor modal
+ */
+function close20iNameEditorModal() {
+  document.getElementById('twentyiNameEditorModal').style.display = 'none';
+}
+
+/**
+ * Clear custom name for a user
+ */
+function clearCustomName(userId) {
+  const input = document.getElementById(`name-${userId}`);
+  const user = available20iUsers.find(u => u.id === userId);
+  if (user && input) {
+    input.value = user.defaultName;
+  }
+}
+
+/**
+ * Save custom names for 20i users
+ */
+async function save20iCustomNames() {
+  try {
+    const authData = localStorage.getItem('sb-supabase-auth-token');
+    const session = JSON.parse(authData);
+    const token = session.access_token;
+
+    // Collect all custom names
+    const customNames = available20iUsers.map(user => ({
+      id: user.id,
+      name: document.getElementById(`name-${user.id}`).value.trim() || user.defaultName
+    }));
+
+    // Update all companies that use these stack users
+    // We'll update the database directly via a new endpoint
+    const response = await fetch('/api/admin/companies/20i-custom-names', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ customNames })
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to save custom names');
+    }
+
+    alert('Custom names saved successfully');
+    close20iNameEditorModal();
+
+    // Reload available users to reflect changes
+    await load20iStackcpUsers();
+
+    // Re-render checkboxes with new names
+    if (managingCompanyId) {
+      const company = companies.find(c => c.id === managingCompanyId);
+      if (company) {
+        const selectedIds = (company.twentyiStackcpUsers || []).map(u => u.id);
+        render20iCheckboxes(selectedIds);
+      }
+    }
+  } catch (error) {
+    console.error('20i: Error saving custom names:', error);
+    alert('Error: ' + error.message);
+  }
+}
+
 // Initialize on page load
 init();
