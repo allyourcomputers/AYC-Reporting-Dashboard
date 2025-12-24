@@ -255,7 +255,6 @@
             <div class="refresh-controls">
                 <div class="refresh-info">
                     <span id="last-updated">Last updated: Never</span>
-                    <span id="next-refresh" style="margin-left: 15px;">Next refresh in: 5:00</span>
                 </div>
                 <button id="refreshBtn" class="refresh-btn">🔄 Refresh Now</button>
             </div>
@@ -290,9 +289,6 @@
 
     <script>
         let domainsData = null;
-        let refreshInterval = null;
-        let countdownInterval = null;
-        let nextRefreshTime = null;
 
         // Format date for display
         function formatDate(isoString) {
@@ -386,9 +382,6 @@
                 document.getElementById('last-updated').textContent =
                     `Last updated: ${lastUpdated.toLocaleTimeString()}`;
 
-                // Reset refresh countdown
-                nextRefreshTime = Date.now() + (5 * 60 * 1000); // 5 minutes from now
-
             } catch (error) {
                 console.error('20i: Error loading domains data:', error);
                 const tbody = document.getElementById('domainsTableBody');
@@ -411,38 +404,6 @@
             }
         }
 
-        // Update countdown timer
-        function updateCountdown() {
-            if (!nextRefreshTime) return;
-
-            const remaining = Math.max(0, nextRefreshTime - Date.now());
-            const minutes = Math.floor(remaining / 60000);
-            const seconds = Math.floor((remaining % 60000) / 1000);
-
-            document.getElementById('next-refresh').textContent =
-                `Next refresh in: ${minutes}:${seconds.toString().padStart(2, '0')}`;
-
-            // Auto-refresh when countdown reaches 0
-            if (remaining === 0) {
-                loadDomainsData();
-            }
-        }
-
-        // Start auto-refresh
-        function startAutoRefresh() {
-            // Refresh every 5 minutes
-            refreshInterval = setInterval(loadDomainsData, 5 * 60 * 1000);
-
-            // Update countdown every second
-            countdownInterval = setInterval(updateCountdown, 1000);
-        }
-
-        // Stop auto-refresh
-        function stopAutoRefresh() {
-            if (refreshInterval) clearInterval(refreshInterval);
-            if (countdownInterval) clearInterval(countdownInterval);
-        }
-
         // Initialize page
         async function initPage() {
             // Initialize authentication first
@@ -457,15 +418,7 @@
 
             // Load domains data
             await loadDomainsData();
-
-            // Start auto-refresh
-            startAutoRefresh();
         }
-
-        // Cleanup on page unload
-        window.addEventListener('beforeunload', () => {
-            stopAutoRefresh();
-        });
 
         // Load page when DOM is ready
         window.addEventListener('DOMContentLoaded', () => {
