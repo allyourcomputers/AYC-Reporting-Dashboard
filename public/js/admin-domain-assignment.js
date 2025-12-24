@@ -114,27 +114,26 @@ function renderDomains() {
   const searchTerm = document.getElementById('domainSearch').value.toLowerCase();
   const container = document.getElementById('domainList');
 
+  // Filter to show ONLY unassigned domains
   const filteredDomains = allDomains
+    .filter(d => !domainAssignments[d.name]) // Only show unassigned domains
     .filter(d => d.name.toLowerCase().includes(searchTerm))
     .sort((a, b) => a.name.localeCompare(b.name));
 
   if (filteredDomains.length === 0) {
-    container.innerHTML = '<p class="loading">No domains found</p>';
+    container.innerHTML = '<p class="loading">No unassigned domains found</p>';
     return;
   }
 
   container.innerHTML = filteredDomains.map(domain => {
-    const isAssigned = domainAssignments[domain.name];
     const isSelected = selectedDomains.has(domain.name);
-    const assignedCompany = isAssigned ? companies.find(c => c.id === isAssigned) : null;
 
     return `
-      <div class="domain-item ${isSelected ? 'selected' : ''} ${isAssigned ? 'assigned' : ''}"
+      <div class="domain-item ${isSelected ? 'selected' : ''}"
            data-domain="${domain.name}">
         <div>
           <strong>${domain.name}</strong>
           ${domain.hasHosting ? '<span class="domain-badge hosting">Hosting</span>' : '<span class="domain-badge">Domain Only</span>'}
-          ${isAssigned ? `<div class="assignment-info">→ ${assignedCompany?.name || 'Unknown Company'}</div>` : ''}
         </div>
       </div>
     `;
@@ -392,6 +391,7 @@ function setupEventListeners() {
   document.getElementById('selectAllDomains').addEventListener('click', () => {
     const searchTerm = document.getElementById('domainSearch').value.toLowerCase();
     const visibleDomains = allDomains
+      .filter(d => !domainAssignments[d.name]) // Only select unassigned domains
       .filter(d => d.name.toLowerCase().includes(searchTerm))
       .map(d => d.name);
 
