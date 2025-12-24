@@ -3,6 +3,7 @@ let companies = [];
 let availableClients = [];
 let availableNinjaOneOrgs = [];
 let available20iUsers = [];
+let stackUserDomainMappings = {};  // Map of Stack User ID -> domains
 let editingCompanyId = null;
 let managingCompanyId = null;
 
@@ -12,6 +13,7 @@ async function init() {
   await loadAvailableClients();
   await loadAvailableNinjaOneOrgs();
   await load20iStackcpUsers();
+  await loadStackUserDomainMappings();
 }
 
 /**
@@ -131,6 +133,45 @@ async function load20iStackcpUsers() {
 }
 
 /**
+ * Load Stack User domain mappings
+ */
+async function loadStackUserDomainMappings() {
+  try {
+    const authData = localStorage.getItem('sb-supabase-auth-token');
+    const session = JSON.parse(authData);
+    const token = session.access_token;
+
+    const response = await fetch('/api/stack-users/all', {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to load Stack User domain mappings');
+    }
+
+    const data = await response.json();
+
+    // Create a map: Stack User ID -> { domains: [...], wordpressCount: N }
+    stackUserDomainMappings = {};
+    (data.stackUsers || []).forEach(user => {
+      stackUserDomainMappings[user.stackUserId] = {
+        domains: user.domains || [],
+        wordpressCount: user.wordpressCount || 0
+      };
+    });
+
+    console.log(`20i: Loaded domain mappings for ${Object.keys(stackUserDomainMappings).length} Stack Users`);
+  } catch (error) {
+    console.error('20i: Error loading Stack User domain mappings:', error);
+    // Don't fail silently - just log and continue
+    stackUserDomainMappings = {};
+  }
+}
+
+/**
  * Render companies grid
  */
 function renderCompanies() {
@@ -175,9 +216,22 @@ function renderCompanies() {
         <div class="company-card-section-title">20i StackCP Users (${company.twentyiStackcpUsers?.length || 0})</div>
         <div class="mapping-list">
           ${company.twentyiStackcpUsers && company.twentyiStackcpUsers.length > 0 ?
-            company.twentyiStackcpUsers.map(user => `
-              <div class="mapping-item">${user.name || user.id}</div>
-            `).join('') :
+            company.twentyiStackcpUsers.map(user => {
+              const mapping = stackUserDomainMappings[user.id];
+              const domainCount = mapping ? mapping.domains.length : 0;
+              const domains = mapping ? mapping.domains : [];
+              return `
+                <div class="mapping-item">
+                  <div style="font-weight: 600;">${user.name || user.id}</div>
+                  <div style="font-size: 11px; color: #666; margin-top: 3px;">
+                    ${domainCount > 0 ?
+                      `${domainCount} domain${domainCount !== 1 ? 's' : ''}: ${domains.slice(0, 2).join(', ')}${domainCount > 2 ? ` +${domainCount - 2} more` : ''}` :
+                      'No domains'
+                    }
+                  </div>
+                </div>
+              `;
+            }).join('') :
             '<div class="mapping-empty">No 20i StackCP users assigned</div>'
           }
         </div>
@@ -648,7 +702,7 @@ function close20iModal() {
 }
 
 /**
- * Render 20i StackCP user checkboxes
+ * Render 20i StackCP user checkboxes with domain information
  */
 function render20iCheckboxes(selectedIds = []) {
   const container = document.getElementById('twentyiCheckboxes');
@@ -658,18 +712,39 @@ function render20iCheckboxes(selectedIds = []) {
     return;
   }
 
-  container.innerHTML = available20iUsers.map(user => `
-    <div class="form-checkbox-item">
-      <input
-        type="checkbox"
-        id="twentyi-${user.id}"
-        value="${user.id}"
-        data-name="${user.name}"
-        ${selectedIds.includes(user.id) ? 'checked' : ''}
-      >
-      <label for="twentyi-${user.id}">${user.name}</label>
-    </div>
-  `).join('');
+  container.innerHTML = available20iUsers.map(user => {
+    const mapping = stackUserDomainMappings[user.id];
+    const domains = mapping ? mapping.domains : [];
+    const wpCount = mapping ? mapping.wordpressCount : 0;
+
+    return `
+      <div class="form-checkbox-item" style="padding: 12px; margin-bottom: 10px; background: #f8f9fa; border-radius: 6px;">
+        <div style="display: flex; align-items: start; gap: 10px;">
+          <input
+            type="checkbox"
+            id="twentyi-${user.id}"
+            value="${user.id}"
+            data-name="${user.name}"
+            ${selectedIds.includes(user.id) ? 'checked' : ''}
+            style="margin-top: 3px;"
+          >
+          <div style="flex: 1;">
+            <label for="twentyi-${user.id}" style="font-weight: 600; color: #333; cursor: pointer; display: block; margin-bottom: 5px;">
+              ${user.name}
+            </label>
+            <div style="font-size: 12px; color: #666;">
+              ${domains.length > 0 ? `
+                <div style="margin-bottom: 3px;">
+                  <strong>Domains (${domains.length}):</strong> ${domains.slice(0, 3).join(', ')}${domains.length > 3 ? ` +${domains.length - 3} more` : ''}
+                </div>
+                ${wpCount > 0 ? `<div style="color: #5469d4;">🔹 ${wpCount} WordPress site${wpCount !== 1 ? 's' : ''}</div>` : ''}
+              ` : `<span style="color: #999; font-style: italic;">No domains found</span>`}
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
 }
 
 /**
