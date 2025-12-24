@@ -21,15 +21,15 @@ CREATE INDEX IF NOT EXISTS idx_company_domain_assignments_domain_name
 -- Add RLS policies
 ALTER TABLE company_domain_assignments ENABLE ROW LEVEL SECURITY;
 
--- Super admins can do everything
+-- Super admins can do everything (check is_super_admin column on users table)
 CREATE POLICY "Super admins can manage domain assignments"
   ON company_domain_assignments
   FOR ALL
   USING (
     EXISTS (
-      SELECT 1 FROM user_roles
-      WHERE user_roles.user_id = auth.uid()
-      AND user_roles.role = 'super_admin'
+      SELECT 1 FROM users
+      WHERE users.id = auth.uid()
+      AND users.is_super_admin = true
     )
   );
 
