@@ -1,5 +1,6 @@
 const axios = require('axios');
 const logger = require('./logger');
+const { STACKCP_USER_NAMES } = require('./stackcp-user-names');
 
 // Token cache
 let tokenCache = {
@@ -229,12 +230,10 @@ async function getStackcpUsers() {
       }
     });
 
-    // Convert map to array with friendly names
+    // Convert map to array with friendly names from our reference mapping
     const users = Array.from(stackUserMap.values()).map(user => ({
       id: user.id,
-      name: user.domainCount === 1
-        ? user.primaryDomain
-        : `${user.primaryDomain} (+${user.domainCount - 1} more)`
+      name: STACKCP_USER_NAMES[user.id] || user.primaryDomain
     }));
 
     logger.info('20i: Fetched StackCP users', { count: users.length });
