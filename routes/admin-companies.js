@@ -386,13 +386,38 @@ router.get('/available-ninjaone-orgs', requireSuperAdmin, async (req, res) => {
 /**
  * GET /api/admin/companies/available-20i-stackcp-users
  * Get all available 20i StackCP users for mapping
- * Includes custom names from database if they exist
+ * Uses the stack_user_domain_mappings table to get the correct StackCP User IDs
  */
 router.get('/available-20i-stackcp-users', requireSuperAdmin, async (req, res) => {
   try {
-    const stackcpUsers = await twentyiClient.getStackcpUsers();
+    // Get unique Stack Users from our domain mappings table
+    const { data: mappings, error: mappingsError } = await supabase
+      .from('stack_user_domain_mappings')
+      .select('stack_user_id, stack_user_ref, domain_name')
+      .order('stack_user_id');
 
-    // Fetch custom names from database
+    if (mappingsError) {
+      logger.error('Failed to fetch stack user mappings', { error: mappingsError });
+      return res.status(500).json({ error: 'Failed to fetch Stack Users' });
+    }
+
+    // Load Stack User names from our reference file
+    const { STACKCP_USER_NAMES } = require('../stackcp-user-names');
+
+    // Group by stack_user_id to get unique users with domain counts
+    const userMap = new Map();
+    for (const mapping of mappings) {
+      if (!userMap.has(mapping.stack_user_id)) {
+        userMap.set(mapping.stack_user_id, {
+          id: mapping.stack_user_id,
+          domainCount: 0,
+          primaryDomain: mapping.domain_name
+        });
+      }
+      userMap.get(mapping.stack_user_id).domainCount++;
+    }
+
+    // Fetch custom names from database (if users have renamed them)
     const { data: customNames, error: dbError } = await supabase
       .from('company_20i_stackcp_users')
       .select('stackcp_user_id, stackcp_user_name');
@@ -411,13 +436,23 @@ router.get('/available-20i-stackcp-users', requireSuperAdmin, async (req, res) =
       });
     }
 
-    // Merge custom names with stack user data
-    const enrichedUsers = stackcpUsers.map(user => ({
-      id: user.id,
-      name: customNameMap.get(user.id) || user.name,
-      defaultName: user.name, // Keep original for reference
-      hasCustomName: customNameMap.has(user.id)
-    }));
+    // Build final user list with proper names
+    const enrichedUsers = Array.from(userMap.values()).map(user => {
+      // Priority: custom name > reference name > primary domain
+      const defaultName = STACKCP_USER_NAMES[user.id] || user.primaryDomain;
+      const customName = customNameMap.get(user.id);
+
+      return {
+        id: user.id,
+        name: customName || defaultName,
+        defaultName: defaultName,
+        domainCount: user.domainCount,
+        hasCustomName: customNameMap.has(user.id)
+      };
+    });
+
+    // Sort by name
+    enrichedUsers.sort((a, b) => a.name.localeCompare(b.name));
 
     res.json({ stackcpUsers: enrichedUsers });
   } catch (error) {
