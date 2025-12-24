@@ -2,8 +2,6 @@
 let companies = [];
 let availableClients = [];
 let availableNinjaOneOrgs = [];
-let available20iUsers = [];
-let stackUserDomainMappings = {};  // Map of Stack User ID -> domains
 let editingCompanyId = null;
 let managingCompanyId = null;
 
@@ -12,8 +10,6 @@ async function init() {
   await loadCompanies();
   await loadAvailableClients();
   await loadAvailableNinjaOneOrgs();
-  await load20iStackcpUsers();
-  await loadStackUserDomainMappings();
 }
 
 /**
@@ -212,31 +208,6 @@ function renderCompanies() {
         </div>
       </div>
 
-      <div class="company-card-section">
-        <div class="company-card-section-title">20i StackCP Users (${company.twentyiStackcpUsers?.length || 0})</div>
-        <div class="mapping-list">
-          ${company.twentyiStackcpUsers && company.twentyiStackcpUsers.length > 0 ?
-            company.twentyiStackcpUsers.map(user => {
-              const mapping = stackUserDomainMappings[user.id];
-              const domainCount = mapping ? mapping.domains.length : 0;
-              const domains = mapping ? mapping.domains : [];
-              return `
-                <div class="mapping-item">
-                  <div style="font-weight: 600;">${user.name || user.id}</div>
-                  <div style="font-size: 11px; color: #666; margin-top: 3px;">
-                    ${domainCount > 0 ?
-                      `${domainCount} domain${domainCount !== 1 ? 's' : ''}: ${domains.slice(0, 2).join(', ')}${domainCount > 2 ? ` +${domainCount - 2} more` : ''}` :
-                      'No domains'
-                    }
-                  </div>
-                </div>
-              `;
-            }).join('') :
-            '<div class="mapping-empty">No 20i StackCP users assigned</div>'
-          }
-        </div>
-      </div>
-
       <div class="company-card-actions">
         <button class="btn btn-primary" onclick="openEditCompanyModal('${company.id}')">
           Edit
@@ -246,9 +217,6 @@ function renderCompanies() {
         </button>
         <button class="btn btn-secondary" onclick="openNinjaOneModal('${company.id}')">
           NinjaOne
-        </button>
-        <button class="btn btn-secondary" onclick="open20iModal('${company.id}')">
-          20i StackCP
         </button>
         <button class="btn btn-danger" onclick="deleteCompany('${company.id}', '${company.name}')">
           Delete

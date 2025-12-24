@@ -57,16 +57,6 @@ router.get('/', requireSuperAdmin, async (req, res) => {
       return res.status(500).json({ error: 'Failed to fetch NinjaOne mappings' });
     }
 
-    // Get 20i StackCP user mappings
-    const { data: twentyiMappings, error: twentyiError } = await supabase
-      .from('company_20i_stackcp_users')
-      .select('*');
-
-    if (twentyiError) {
-      logger.error('Failed to fetch 20i mappings', { error: twentyiError });
-      return res.status(500).json({ error: 'Failed to fetch 20i mappings' });
-    }
-
     // Build response with mappings
     const companiesWithMappings = companies.map(company => {
       const haloPSAClients = haloPSAMappings
@@ -83,20 +73,12 @@ router.get('/', requireSuperAdmin, async (req, res) => {
           name: m.ninjaone_org_name
         }));
 
-      const twentyiStackcpUsers = twentyiMappings
-        .filter(m => m.company_id === company.id)
-        .map(m => ({
-          id: m.stackcp_user_id,
-          name: m.stackcp_user_name
-        }));
-
       return {
         id: company.id,
         name: company.name,
         logoUrl: company.logo_url,
         haloPSAClients,
         ninjaOneOrgs,
-        twentyiStackcpUsers,
         createdAt: company.created_at,
         updatedAt: company.updated_at
       };
