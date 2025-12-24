@@ -147,7 +147,7 @@ app.use('/api/admin/companies', requireAuth, injectCompanyContext, adminCompanie
 app.use('/api/admin/domain-assignments', requireAuth, injectCompanyContext, domainAssignmentsRouter);
 app.use('/api/profile', requireAuth, userProfileRouter);
 app.use('/api/stack-users', requireAuth, stackUsersRouter);
-app.use('/api/domains', requireAuth, domainsRouter);
+app.use('/api/domains', requireAuth, injectCompanyContext, domainsRouter);
 
 // Get all active clients (clients with tickets in the last 12 months)
 app.get('/api/clients', requireAuth, injectCompanyContext, async (req, res) => {
