@@ -144,7 +144,7 @@ app.use(express.static('public'));
 // Multi-tenant routes (require authentication and company context)
 app.use('/api/admin/users', requireAuth, injectCompanyContext, adminUsersRouter);
 app.use('/api/admin/companies', requireAuth, injectCompanyContext, adminCompaniesRouter);
-app.use('/api/admin/domain-assignments', requireAuth, domainAssignmentsRouter);
+app.use('/api/admin/domain-assignments', requireAuth, injectCompanyContext, domainAssignmentsRouter);
 app.use('/api/profile', requireAuth, userProfileRouter);
 app.use('/api/stack-users', requireAuth, stackUsersRouter);
 app.use('/api/domains', requireAuth, domainsRouter);
