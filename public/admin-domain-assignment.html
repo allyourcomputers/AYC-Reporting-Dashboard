@@ -4,7 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Domain Assignment - Company Dashboard</title>
-    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/shared.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/company-switcher.js"></script>
     <style>
         .assignment-container {
             display: grid;
@@ -192,11 +195,79 @@
     </style>
 </head>
 <body>
-    <nav id="navbar"></nav>
+    <div class="sidebar">
+        <div class="logo">
+            <img id="companyLogo" src="/images/logo.png" alt="All Your Computers">
+            <script>
+                // Load cached logo immediately to prevent flicker
+                (function() {
+                    try {
+                        const cached = localStorage.getItem('company-logo-cache');
+                        if (cached) {
+                            const { logoUrl, companyName } = JSON.parse(cached);
+                            const img = document.getElementById('companyLogo');
+                            if (img && logoUrl) {
+                                img.src = logoUrl;
+                                img.alt = companyName || 'Company Logo';
+                            }
+                        }
+                    } catch (e) {}
+                })();
+            </script>
+        </div>
+        <nav class="nav-menu">
+            <div class="nav-section">MAIN MENU</div>
+            <a href="/" class="nav-item">
+                <span class="nav-icon">📊</span>
+                Dashboard
+            </a>
+            <a href="/reports.html" class="nav-item">
+                <span class="nav-icon">📈</span>
+                Reports
+            </a>
+            <a href="/servers.html" class="nav-item">
+                <span class="nav-icon">🖥️</span>
+                Servers
+            </a>
+            <a href="/workstations.html" class="nav-item">
+                <span class="nav-icon">💻</span>
+                Workstations
+            </a>
+            <a href="/domains.html" class="nav-item">
+                <span class="nav-icon">🌐</span>
+                Domains & Hosting
+            </a>
+            <div class="nav-section" id="adminNavSection" style="display:none;">ADMIN</div>
+            <a href="/admin-users.html" class="nav-item" id="adminUsersLink" style="display:none;">
+                <span class="nav-icon">👥</span>
+                Users
+            </a>
+            <a href="/admin-companies.html" class="nav-item" id="adminCompaniesLink" style="display:none;">
+                <span class="nav-icon">🏢</span>
+                Companies
+            </a>
+            <a href="/admin-domain-assignment.html" class="nav-item active" id="adminDomainAssignmentLink" style="display:none;">
+                <span class="nav-icon">🔗</span>
+                Domain Assignment
+            </a>
+        </nav>
+        <div class="user-account-section">
+            <div id="userInfo" class="user-email-value">Loading...</div>
+            <button id="logoutBtn" class="logout-btn" onclick="logout()">
+                <span class="logout-icon">🚪</span>
+                <span>Logout</span>
+            </button>
+        </div>
+    </div>
 
-    <div class="container">
-        <h1>Domain to Company Assignment</h1>
-        <p>Manually assign 20i domains to companies</p>
+    <div class="main-content">
+        <div id="companySwitcher"></div>
+
+        <div class="dashboard-content">
+            <div class="welcome-section">
+                <h1>Domain to Company Assignment</h1>
+                <p class="subtitle">Manually assign 20i domains to companies</p>
+            </div>
 
         <div class="assignment-container">
             <!-- Left Column: Domains -->
@@ -252,9 +323,9 @@
                 </div>
             </div>
         </div>
+        </div>
     </div>
 
-    <script src="/js/auth-init.js"></script>
     <script src="/js/admin-domain-assignment.js"></script>
 </body>
 </html>

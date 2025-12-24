@@ -14,6 +14,7 @@ const adminCompaniesRouter = require('./routes/admin-companies');
 const userProfileRouter = require('./routes/user-profile');
 const stackUsersRouter = require('./routes/stack-users');
 const domainAssignmentsRouter = require('./routes/domain-assignments');
+const domainsRouter = require('./routes/domains');
 
 const app = express();
 const PORT = process.env.PORT || 3100;
@@ -146,6 +147,7 @@ app.use('/api/admin/companies', requireAuth, injectCompanyContext, adminCompanie
 app.use('/api/admin/domain-assignments', requireAuth, domainAssignmentsRouter);
 app.use('/api/profile', requireAuth, userProfileRouter);
 app.use('/api/stack-users', requireAuth, stackUsersRouter);
+app.use('/api/domains', requireAuth, domainsRouter);
 
 // Get all active clients (clients with tickets in the last 12 months)
 app.get('/api/clients', requireAuth, injectCompanyContext, async (req, res) => {
