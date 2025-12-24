@@ -114,9 +114,9 @@ function renderDomains() {
   const searchTerm = document.getElementById('domainSearch').value.toLowerCase();
   const container = document.getElementById('domainList');
 
-  const filteredDomains = allDomains.filter(d =>
-    d.name.toLowerCase().includes(searchTerm)
-  );
+  const filteredDomains = allDomains
+    .filter(d => d.name.toLowerCase().includes(searchTerm))
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   if (filteredDomains.length === 0) {
     container.innerHTML = '<p class="loading">No domains found</p>';
@@ -272,7 +272,9 @@ async function assignDomains() {
     });
 
     if (!response.ok) {
-      throw new Error('Failed to assign domains');
+      const errorData = await response.json().catch(() => ({}));
+      console.error('Assignment failed:', errorData);
+      throw new Error(errorData.error || 'Failed to assign domains');
     }
 
     // Update local state
@@ -288,7 +290,7 @@ async function assignDomains() {
     alert(`Successfully assigned ${assignments.length} domains`);
   } catch (error) {
     console.error('Error assigning domains:', error);
-    alert('Failed to assign domains. Please try again.');
+    alert(`Failed to assign domains: ${error.message}`);
   }
 }
 
