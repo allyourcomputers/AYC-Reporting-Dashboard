@@ -12,111 +12,156 @@
         .users-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-            gap: 20px;
-            margin-top: 20px;
+            gap: var(--space-lg);
+            margin-top: var(--space-lg);
         }
 
         .user-card {
             background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: var(--space-lg);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--gray-200);
+            display: flex;
+            flex-direction: column;
+            min-height: 420px;
+            transition: all var(--transition-base);
+        }
+
+        .user-card:hover {
+            box-shadow: var(--shadow-lg);
         }
 
         .user-card-header {
             display: flex;
             justify-content: space-between;
             align-items: start;
-            margin-bottom: 15px;
+            margin-bottom: var(--space-md);
+            padding-bottom: var(--space-md);
+            border-bottom: 2px solid var(--gray-200);
         }
 
         .user-card-title {
+            font-family: var(--font-heading);
             font-size: 18px;
-            font-weight: 600;
-            color: #333;
+            font-weight: 700;
+            color: var(--brand-navy);
         }
 
         .user-card-email {
             font-size: 14px;
-            color: #666;
+            color: var(--gray-600);
             margin-top: 5px;
+            font-weight: 500;
         }
 
         .user-card-info {
-            margin: 15px 0;
+            margin: var(--space-md) 0;
+            flex: 1;
         }
 
         .user-card-info-row {
             display: flex;
             justify-content: space-between;
             padding: 8px 0;
-            border-bottom: 1px solid #eee;
+            border-bottom: 1px solid var(--gray-100);
         }
 
         .user-card-info-label {
-            font-size: 13px;
-            color: #999;
+            font-size: 11px;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            font-weight: 700;
+            font-family: var(--font-heading);
         }
 
         .user-card-info-value {
             font-size: 13px;
-            color: #333;
+            color: var(--gray-800);
             font-weight: 500;
         }
 
         .user-card-companies {
-            margin-top: 15px;
+            margin-top: var(--space-md);
         }
 
         .user-card-companies-label {
-            font-size: 13px;
-            color: #999;
-            margin-bottom: 8px;
+            font-size: 11px;
+            color: var(--gray-500);
+            margin-bottom: var(--space-sm);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            font-weight: 700;
+            font-family: var(--font-heading);
         }
 
         .company-tags {
             display: flex;
             flex-wrap: wrap;
-            gap: 5px;
+            gap: 6px;
         }
 
         .company-tag {
-            background: #e3f2fd;
-            color: #1976d2;
-            padding: 4px 10px;
-            border-radius: 12px;
+            background: var(--gray-50);
+            color: var(--gray-700);
+            padding: 6px 12px;
+            border-radius: var(--radius-sm);
             font-size: 12px;
+            border: 1px solid var(--gray-200);
+            font-weight: 500;
         }
 
         .user-card-actions {
             display: flex;
-            gap: 10px;
-            margin-top: 15px;
+            gap: var(--space-sm);
+            margin-top: auto;
+            padding-top: var(--space-md);
+            border-top: 1px solid var(--gray-200);
         }
 
         .btn {
-            padding: 8px 16px;
-            border-radius: 6px;
+            padding: 10px 16px;
+            border-radius: var(--radius-md);
             border: none;
             cursor: pointer;
             font-size: 13px;
-            font-weight: 500;
+            font-weight: 600;
+            font-family: var(--font-heading);
             flex: 1;
+            transition: all var(--transition-fast);
         }
 
         .btn-primary {
-            background: var(--brand-blue);
+            background: var(--brand-green);
             color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--brand-green-light);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-sm);
         }
 
         .btn-secondary {
-            background: #f5f5f5;
-            color: #666;
+            background: var(--gray-100);
+            color: var(--gray-700);
+            border: 1px solid var(--gray-300);
+        }
+
+        .btn-secondary:hover {
+            background: var(--gray-200);
         }
 
         .btn-danger {
-            background: #f44336;
+            background: var(--error);
             color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-sm);
         }
 
         .btn-impersonate {
@@ -124,16 +169,31 @@
             color: white;
         }
 
+        .btn-impersonate:hover {
+            background: #f57c00;
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-sm);
+        }
+
         .btn-add-user {
-            background: var(--brand-blue);
+            background: var(--brand-green);
             color: white;
             padding: 12px 24px;
-            border-radius: 8px;
+            border-radius: var(--radius-md);
             border: none;
             cursor: pointer;
             font-size: 14px;
-            font-weight: 600;
-            margin-bottom: 20px;
+            font-weight: 700;
+            font-family: var(--font-heading);
+            margin-bottom: var(--space-lg);
+            transition: all var(--transition-fast);
+            box-shadow: 0 2px 4px rgba(51, 148, 37, 0.2);
+        }
+
+        .btn-add-user:hover {
+            background: var(--brand-green-light);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px rgba(51, 148, 37, 0.3);
         }
 
         .modal {
@@ -143,7 +203,8 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.5);
+            background: rgba(25, 21, 71, 0.6);
+            backdrop-filter: blur(4px);
             z-index: 1000;
             align-items: center;
             justify-content: center;
@@ -155,81 +216,111 @@
 
         .modal-content {
             background: white;
-            padding: 30px;
-            border-radius: 12px;
+            padding: var(--space-2xl);
+            border-radius: var(--radius-lg);
             max-width: 500px;
             width: 90%;
             max-height: 90vh;
             overflow-y: auto;
+            box-shadow: var(--shadow-xl);
         }
 
         .modal-header {
+            font-family: var(--font-heading);
             font-size: 24px;
             font-weight: 700;
-            margin-bottom: 20px;
+            margin-bottom: var(--space-xl);
+            color: var(--brand-navy);
         }
 
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: var(--space-lg);
         }
 
         .form-label {
             display: block;
             font-size: 14px;
             font-weight: 600;
-            margin-bottom: 8px;
-            color: #333;
+            margin-bottom: var(--space-sm);
+            color: var(--gray-700);
+            font-family: var(--font-heading);
         }
 
         .form-input {
             width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
+            padding: 12px;
+            border: 2px solid var(--gray-300);
+            border-radius: var(--radius-md);
             font-size: 14px;
+            transition: all var(--transition-fast);
+            font-family: var(--font-body);
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--brand-green);
+            box-shadow: 0 0 0 4px rgba(51, 148, 37, 0.1);
         }
 
         .form-select {
             width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
+            padding: 12px;
+            border: 2px solid var(--gray-300);
+            border-radius: var(--radius-md);
             font-size: 14px;
+            transition: all var(--transition-fast);
+            font-family: var(--font-body);
+            cursor: pointer;
+        }
+
+        .form-select:focus {
+            outline: none;
+            border-color: var(--brand-green);
+            box-shadow: 0 0 0 4px rgba(51, 148, 37, 0.1);
         }
 
         .form-checkbox-group {
-            max-height: 200px;
+            max-height: 300px;
             overflow-y: auto;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            padding: 10px;
+            border: 2px solid var(--gray-300);
+            border-radius: var(--radius-md);
+            padding: var(--space-md);
         }
 
         .form-checkbox-item {
-            padding: 8px;
+            padding: var(--space-sm);
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: var(--space-sm);
+            border-radius: var(--radius-sm);
+            transition: background var(--transition-fast);
+        }
+
+        .form-checkbox-item:hover {
+            background: var(--gray-50);
         }
 
         .form-checkbox-item input[type="checkbox"] {
             width: 18px;
             height: 18px;
+            cursor: pointer;
         }
 
         .modal-actions {
             display: flex;
-            gap: 10px;
-            margin-top: 30px;
+            gap: var(--space-sm);
+            margin-top: var(--space-2xl);
         }
 
         .badge {
             display: inline-block;
             padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: 600;
+            border-radius: var(--radius-sm);
+            font-size: 10px;
+            font-weight: 700;
             text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-family: var(--font-heading);
         }
 
         .badge-super-admin {
@@ -238,7 +329,7 @@
         }
 
         .badge-customer {
-            background: #4caf50;
+            background: var(--brand-green);
             color: white;
         }
     </style>
@@ -294,6 +385,10 @@
             <a href="/admin-companies.html" class="nav-item" id="adminCompaniesLink" style="display:none;">
                 <span class="nav-icon">🏢</span>
                 Companies
+            </a>
+            <a href="/admin-domain-assignment.html" class="nav-item" id="adminDomainAssignmentLink" style="display:none;">
+                <span class="nav-icon">🌐</span>
+                Domain Assignment
             </a>
         </nav>
         <div class="user-account-section">
