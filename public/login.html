@@ -73,13 +73,15 @@
         .brand-logo {
             margin-bottom: var(--space-2xl);
             animation: fadeInUp 0.8s ease-out;
+            font-family: var(--font-heading);
+            font-size: 48px;
+            font-weight: 800;
+            color: white;
+            letter-spacing: -1px;
         }
 
         .brand-logo img {
-            max-width: 280px;
-            height: auto;
-            filter: brightness(0) invert(1);
-            /* Convert logo to white for dark background */
+            display: none;
         }
 
         .brand-title {
@@ -351,7 +353,7 @@
         <div class="login-brand">
             <div class="brand-content">
                 <div class="brand-logo">
-                    <img src="/images/logo.png" alt="All Your Computers" onerror="this.style.display='none'">
+                    All Your Computers
                 </div>
                 <h1 class="brand-title">Company Dashboard</h1>
                 <p class="brand-subtitle">
