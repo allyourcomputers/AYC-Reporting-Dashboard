@@ -445,6 +445,12 @@ app.get('/api/sync/status', requireAuth, async (req, res) => {
 // Get dashboard statistics
 app.get('/api/dashboard/stats', requireAuth, injectCompanyContext, async (req, res) => {
   try {
+    logger.info('Dashboard stats request', {
+      userId: req.user.id,
+      isSuperAdmin: req.isSuperAdmin,
+      activeCompanyId: req.activeCompanyId
+    });
+
     // Get current date and various time periods
     const now = new Date();
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
@@ -681,7 +687,7 @@ app.get('/api/dashboard/stats', requireAuth, injectCompanyContext, async (req, r
       };
     }
 
-    res.json({
+    const responseData = {
       totalTickets,
       openTickets,
       closedTickets,
@@ -698,9 +704,19 @@ app.get('/api/dashboard/stats', requireAuth, injectCompanyContext, async (req, r
       topClients: topClientsWithCounts,
       dailyTrend: dailyCounts,
       satisfaction: satisfactionStats
+    };
+
+    logger.info('Dashboard stats response', {
+      totalTickets,
+      openTickets,
+      closedTickets,
+      topClientsCount: topClientsWithCounts.length,
+      isSuperAdmin: req.isSuperAdmin
     });
+
+    res.json(responseData);
   } catch (error) {
-    console.error('Error fetching dashboard stats:', error);
+    logger.error('Error fetching dashboard stats', { error: error.message, stack: error.stack });
     res.status(500).json({ error: 'Failed to fetch dashboard statistics' });
   }
 });
