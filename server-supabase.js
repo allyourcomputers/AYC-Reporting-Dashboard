@@ -3,6 +3,9 @@ require('dotenv').config();
 
 const express = require('express');
 const path = require('path');
+const helmet = require('helmet');
+const cors = require('cors');
+const rateLimit = require('express-rate-limit');
 const { createClient } = require('@supabase/supabase-js');
 const { performFullSync } = require('./sync-service');
 const logger = require('./logger');
@@ -44,19 +47,64 @@ app.use((req, res, next) => {
   next();
 });
 
-// CORS middleware - Allow all origins for API requests
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+// Security: Apply helmet to set secure HTTP headers
+// Protects against XSS, clickjacking, and other common attacks
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "https:"],
+    },
+  },
+}));
 
-  // Handle preflight requests
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(200);
+// Security: CORS - Allow only specific origins
+// In production, set ALLOWED_ORIGINS in .env to your frontend URL(s)
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim())
+  : ['http://localhost:3000', 'http://localhost:3100'];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      logger.warn('CORS blocked request from origin', { origin });
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization']
+}));
+
+// Security: Rate limiting - Prevent abuse/DoS attacks
+// Limit each IP to 100 requests per 15 minutes for API endpoints
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: 'Too many requests from this IP, please try again later.',
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  handler: (req, res) => {
+    logger.warn('Rate limit exceeded', {
+      ip: req.ip,
+      path: req.path,
+      method: req.method
+    });
+    res.status(429).json({
+      error: 'Too many requests, please try again later.'
+    });
   }
-
-  next();
 });
+
+// Apply rate limiting to all API routes
+app.use('/api/', apiLimiter);
 
 app.use(express.json());
 
@@ -65,16 +113,17 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
 
-// Debug: Log environment variable status (without revealing values)
+// Security: Log environment variable status without revealing values
 console.log('Environment check:');
-console.log('- SUPABASE_URL:', SUPABASE_URL ? `Set (${SUPABASE_URL.substring(0, 20)}...)` : 'NOT SET');
-console.log('- SUPABASE_SERVICE_ROLE_KEY:', SUPABASE_SERVICE_ROLE_KEY ? `Set (${SUPABASE_SERVICE_ROLE_KEY.substring(0, 20)}...)` : 'NOT SET');
-console.log('- SUPABASE_ANON_KEY:', SUPABASE_ANON_KEY ? `Set (${SUPABASE_ANON_KEY.substring(0, 20)}...)` : 'NOT SET');
+console.log('- SUPABASE_URL:', SUPABASE_URL ? 'Set' : 'NOT SET');
+console.log('- SUPABASE_SERVICE_ROLE_KEY:', SUPABASE_SERVICE_ROLE_KEY ? 'Set' : 'NOT SET');
+console.log('- SUPABASE_ANON_KEY:', SUPABASE_ANON_KEY ? 'Set' : 'NOT SET');
 console.log('- HALO_API_URL:', process.env.HALO_API_URL ? 'Set' : 'NOT SET');
 console.log('- HALO_CLIENT_ID:', process.env.HALO_CLIENT_ID ? 'Set' : 'NOT SET');
 console.log('- HALO_CLIENT_SECRET:', process.env.HALO_CLIENT_SECRET ? 'Set' : 'NOT SET');
 console.log('- TWENTYI_API_KEY:', process.env.TWENTYI_API_KEY ? 'Set' : 'NOT SET');
 console.log('- TWENTYI_OAUTH_KEY:', process.env.TWENTYI_OAUTH_KEY ? 'Set' : 'NOT SET');
+console.log('- ALLOWED_ORIGINS:', process.env.ALLOWED_ORIGINS ? 'Set' : 'Using defaults (localhost)');
 console.log('- NODE_ENV:', process.env.NODE_ENV || 'development');
 
 if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY || !SUPABASE_ANON_KEY) {

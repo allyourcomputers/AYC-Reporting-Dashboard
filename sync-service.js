@@ -15,13 +15,13 @@ const HALO_CLIENT_SECRET = process.env.HALO_CLIENT_SECRET;
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-// Debug: Log environment variable status (without revealing values)
+// Security: Log environment variable status without revealing values
 console.log('Sync Service - Environment check:');
-console.log('- HALO_API_URL:', HALO_API_URL || 'NOT SET');
+console.log('- HALO_API_URL:', HALO_API_URL ? 'Set' : 'NOT SET');
 console.log('- HALO_CLIENT_ID:', HALO_CLIENT_ID ? 'Set' : 'NOT SET');
 console.log('- HALO_CLIENT_SECRET:', HALO_CLIENT_SECRET ? 'Set' : 'NOT SET');
-console.log('- SUPABASE_URL:', SUPABASE_URL ? `Set (${SUPABASE_URL.substring(0, 20)}...)` : 'NOT SET');
-console.log('- SUPABASE_SERVICE_ROLE_KEY:', SUPABASE_SERVICE_ROLE_KEY ? `Set (${SUPABASE_SERVICE_ROLE_KEY.substring(0, 20)}...)` : 'NOT SET');
+console.log('- SUPABASE_URL:', SUPABASE_URL ? 'Set' : 'NOT SET');
+console.log('- SUPABASE_SERVICE_ROLE_KEY:', SUPABASE_SERVICE_ROLE_KEY ? 'Set' : 'NOT SET');
 
 if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
   console.error('ERROR: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set');
