@@ -107,7 +107,7 @@ function renderCompanySwitcher() {
             Viewing as: <strong>${userProfile.impersonatedUser.fullName}</strong>
             (${userProfile.impersonatedUser.email})
           </span>
-          <button class="btn-stop-impersonation" onclick="stopImpersonation()">
+          <button class="btn-stop-impersonation" data-action="stop-impersonation">
             Stop Impersonation
           </button>
         </div>
@@ -116,6 +116,12 @@ function renderCompanySwitcher() {
   }
 
   container.innerHTML = html;
+
+  // Attach event listener to the button using event delegation
+  const stopButton = container.querySelector('.btn-stop-impersonation');
+  if (stopButton) {
+    stopButton.addEventListener('click', stopImpersonation);
+  }
 }
 
 /**
