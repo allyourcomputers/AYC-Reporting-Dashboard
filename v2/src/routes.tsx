@@ -4,6 +4,7 @@ import { ProtectedRoute } from "@/components/layout/ProtectedRoute"
 import { AppLayout } from "@/components/layout/AppLayout"
 import { DashboardPage } from "@/pages/DashboardPage"
 import { ReportsPage } from "@/pages/ReportsPage"
+import { AdminUsersPage } from "@/pages/admin/AdminUsersPage"
 
 // Placeholder pages - will be implemented later
 
@@ -17,10 +18,6 @@ function WorkstationsPage() {
 
 function DomainsPage() {
   return <div className="p-8"><h1 className="text-2xl font-bold">Domains</h1></div>
-}
-
-function AdminUsersPage() {
-  return <div className="p-8"><h1 className="text-2xl font-bold">Admin Users</h1></div>
 }
 
 function AdminCompaniesPage() {
