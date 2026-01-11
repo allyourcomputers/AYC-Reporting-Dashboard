@@ -3,12 +3,9 @@ import { SignInPage } from "@/components/auth/SignInPage"
 import { ProtectedRoute } from "@/components/layout/ProtectedRoute"
 import { AppLayout } from "@/components/layout/AppLayout"
 import { DashboardPage } from "@/pages/DashboardPage"
+import { ReportsPage } from "@/pages/ReportsPage"
 
 // Placeholder pages - will be implemented later
-
-function ReportsPage() {
-  return <div className="p-8"><h1 className="text-2xl font-bold">Reports</h1></div>
-}
 
 function ServersPage() {
   return <div className="p-8"><h1 className="text-2xl font-bold">Servers</h1></div>
