@@ -1,6 +1,14 @@
 import { action, internalAction, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
+
+/**
+ * Helper to verify super_admin role for actions
+ * Actions can't use ctx.db directly, so we call an internal query
+ */
+async function verifySuperAdminForAction(ctx: { runQuery: (query: typeof internal.users.verifySuperAdmin, args: Record<string, never>) => Promise<boolean> }): Promise<void> {
+  await ctx.runQuery(internal.users.verifySuperAdmin, {});
+}
 import type { Id } from "./_generated/dataModel";
 
 // Types for HaloPSA API responses
@@ -341,11 +349,8 @@ export const recordSyncMetadata = internalMutation({
 export const syncClients = action({
   args: {},
   handler: async (ctx): Promise<SyncResult> => {
-    // Verify authentication
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Unauthorized: Must be logged in to sync data");
-    }
+    // Verify super_admin role
+    await verifySuperAdminForAction(ctx);
 
     console.log("=== Syncing HaloPSA Clients ===");
 
@@ -411,11 +416,8 @@ export const syncTickets = action({
     monthsBack: v.optional(v.number()),
   },
   handler: async (ctx, { monthsBack = 12 }): Promise<SyncResult> => {
-    // Verify authentication
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Unauthorized: Must be logged in to sync data");
-    }
+    // Verify super_admin role
+    await verifySuperAdminForAction(ctx);
 
     console.log(`=== Syncing HaloPSA Tickets (last ${monthsBack} months) ===`);
 
@@ -543,11 +545,8 @@ export const getTicketIdMap = internalMutation({
 export const syncFeedback = action({
   args: {},
   handler: async (ctx): Promise<SyncResult> => {
-    // Verify authentication
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Unauthorized: Must be logged in to sync data");
-    }
+    // Verify super_admin role
+    await verifySuperAdminForAction(ctx);
 
     console.log("=== Syncing HaloPSA Feedback ===");
 
@@ -682,11 +681,8 @@ export const performFullSync = action({
     ticketsResult: SyncResult;
     feedbackResult: SyncResult;
   }> => {
-    // Verify authentication
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Unauthorized: Must be logged in to sync data");
-    }
+    // Verify super_admin role
+    await verifySuperAdminForAction(ctx);
 
     console.log("=== Starting Full HaloPSA Sync ===");
     console.log(`Time: ${new Date().toISOString()}`);

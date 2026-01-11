@@ -1,6 +1,16 @@
-import { query, mutation } from "./_generated/server";
+import { query, mutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 import { getAuthenticatedUser, requireSuperAdmin } from "./lib/auth";
+
+// Internal query for checking super_admin role (used by actions)
+export const verifySuperAdmin = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    const user = await getAuthenticatedUser(ctx);
+    requireSuperAdmin(user);
+    return true;
+  },
+});
 
 // User CRUD operations
 
