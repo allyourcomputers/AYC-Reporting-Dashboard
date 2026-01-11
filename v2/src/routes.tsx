@@ -6,6 +6,7 @@ import { DashboardPage } from "@/pages/DashboardPage"
 import { ReportsPage } from "@/pages/ReportsPage"
 import { AdminUsersPage } from "@/pages/admin/AdminUsersPage"
 import { AdminCompaniesPage } from "@/pages/admin/AdminCompaniesPage"
+import { AdminDomainAssignmentPage } from "@/pages/admin/AdminDomainAssignmentPage"
 
 // Placeholder pages - will be implemented later
 
@@ -41,7 +42,7 @@ export const router = createBrowserRouter([
           { path: "/domains", element: <DomainsPage /> },
           { path: "/admin/users", element: <AdminUsersPage /> },
           { path: "/admin/companies", element: <AdminCompaniesPage /> },
-          { path: "/admin/domain-assignments", element: <div>Domain Assignments</div> },
+          { path: "/admin/domain-assignments", element: <AdminDomainAssignmentPage /> },
         ],
       },
     ],
