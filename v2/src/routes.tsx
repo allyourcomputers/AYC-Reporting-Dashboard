@@ -7,15 +7,10 @@ import { ReportsPage } from "@/pages/ReportsPage"
 import { ServersPage } from "@/pages/ServersPage"
 import { ServerDetailPage } from "@/pages/ServerDetailPage"
 import { WorkstationsPage } from "@/pages/WorkstationsPage"
+import { DomainsPage } from "@/pages/DomainsPage"
 import { AdminUsersPage } from "@/pages/admin/AdminUsersPage"
 import { AdminCompaniesPage } from "@/pages/admin/AdminCompaniesPage"
 import { AdminDomainAssignmentPage } from "@/pages/admin/AdminDomainAssignmentPage"
-
-// Placeholder pages - will be implemented later
-
-function DomainsPage() {
-  return <div className="p-8"><h1 className="text-2xl font-bold">Domains</h1></div>
-}
 
 export const router = createBrowserRouter([
   {
