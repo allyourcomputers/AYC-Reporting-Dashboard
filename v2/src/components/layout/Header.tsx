@@ -1,4 +1,5 @@
 import { UserButton } from "@clerk/clerk-react"
+import { CompanySwitcher } from "./CompanySwitcher"
 
 export function Header() {
   return (
@@ -8,6 +9,7 @@ export function Header() {
           <span className="font-semibold text-lg">Halo Reporting</span>
         </div>
         <div className="ml-auto flex items-center gap-4">
+          <CompanySwitcher />
           <UserButton afterSignOutUrl="/sign-in" />
         </div>
       </div>
