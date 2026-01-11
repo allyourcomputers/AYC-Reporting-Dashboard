@@ -1,0 +1,72 @@
+import { useState, useCallback } from "react";
+import { cn } from "@/lib/utils";
+
+interface DateRangePickerProps {
+  startMonth: string; // YYYY-MM format
+  endMonth: string;   // YYYY-MM format
+  onStartChange: (value: string) => void;
+  onEndChange: (value: string) => void;
+  className?: string;
+}
+
+export function DateRangePicker({
+  startMonth,
+  endMonth,
+  onStartChange,
+  onEndChange,
+  className,
+}: DateRangePickerProps) {
+  const [error, setError] = useState<string | null>(null);
+
+  const handleStartChange = useCallback(
+    (value: string) => {
+      if (value > endMonth) {
+        setError("Start must be before end");
+      } else {
+        setError(null);
+      }
+      onStartChange(value);
+    },
+    [endMonth, onStartChange]
+  );
+
+  const handleEndChange = useCallback(
+    (value: string) => {
+      if (value < startMonth) {
+        setError("End must be after start");
+      } else {
+        setError(null);
+      }
+      onEndChange(value);
+    },
+    [startMonth, onEndChange]
+  );
+
+  return (
+    <div className={cn("space-y-2", className)}>
+      <div className="grid gap-4 md:grid-cols-2">
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Start Month</label>
+          <input
+            type="month"
+            value={startMonth}
+            onChange={(e) => handleStartChange(e.target.value)}
+            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          />
+        </div>
+        <div className="space-y-2">
+          <label className="text-sm font-medium">End Month</label>
+          <input
+            type="month"
+            value={endMonth}
+            onChange={(e) => handleEndChange(e.target.value)}
+            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          />
+        </div>
+      </div>
+      {error && (
+        <p className="text-sm text-destructive">{error}</p>
+      )}
+    </div>
+  );
+}

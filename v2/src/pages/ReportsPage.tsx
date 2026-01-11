@@ -4,6 +4,7 @@ import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
 import {
   Select,
   SelectContent,
@@ -91,26 +92,12 @@ export function ReportsPage() {
             </div>
           )}
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Start Month</label>
-              <input
-                type="month"
-                value={startMonth}
-                onChange={(e) => { setStartMonth(e.target.value); setShowResults(false); }}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">End Month</label>
-              <input
-                type="month"
-                value={endMonth}
-                onChange={(e) => { setEndMonth(e.target.value); setShowResults(false); }}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              />
-            </div>
-          </div>
+          <DateRangePicker
+            startMonth={startMonth}
+            endMonth={endMonth}
+            onStartChange={(value) => { setStartMonth(value); setShowResults(false); }}
+            onEndChange={(value) => { setEndMonth(value); setShowResults(false); }}
+          />
 
           <Button onClick={handleGenerateReport}>
             <FileText className="mr-2 h-4 w-4" />
