@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useAction } from "convex/react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../../convex/_generated/api";
@@ -91,13 +91,14 @@ export function ServersPage() {
   }, [getServers]);
 
   // Sort servers by client name, then server name
-  const sortedServers = data?.servers
-    ? [...data.servers].sort((a, b) => {
-        const clientCompare = a.clientName.localeCompare(b.clientName);
-        if (clientCompare !== 0) return clientCompare;
-        return a.name.localeCompare(b.name);
-      })
-    : [];
+  const sortedServers = useMemo(() => {
+    if (!data?.servers) return [];
+    return [...data.servers].sort((a, b) => {
+      const clientCompare = a.clientName.localeCompare(b.clientName);
+      if (clientCompare !== 0) return clientCompare;
+      return a.name.localeCompare(b.name);
+    });
+  }, [data?.servers]);
 
   if (loading) {
     return (
@@ -168,12 +169,12 @@ export function ServersPage() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b bg-muted/50">
-                    <th className="p-3 text-left font-medium">Name</th>
-                    <th className="p-3 text-left font-medium">Client</th>
-                    <th className="p-3 text-left font-medium">Status</th>
-                    <th className="p-3 text-left font-medium">OS</th>
-                    <th className="p-3 text-left font-medium">Uptime</th>
-                    <th className="p-3 text-left font-medium">Patches</th>
+                    <th scope="col" className="p-3 text-left font-medium">Name</th>
+                    <th scope="col" className="p-3 text-left font-medium">Client</th>
+                    <th scope="col" className="p-3 text-left font-medium">Status</th>
+                    <th scope="col" className="p-3 text-left font-medium">OS</th>
+                    <th scope="col" className="p-3 text-left font-medium">Uptime</th>
+                    <th scope="col" className="p-3 text-left font-medium">Patches</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -183,8 +184,17 @@ export function ServersPage() {
                     return (
                       <tr
                         key={server.id}
-                        className="border-b cursor-pointer hover:bg-muted/50 transition-colors"
+                        className="border-b cursor-pointer hover:bg-muted/50 transition-colors focus:bg-muted/50 focus:outline-none"
                         onClick={() => navigate(`/servers/${server.id}`)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            navigate(`/servers/${server.id}`);
+                          }
+                        }}
+                        tabIndex={0}
+                        role="button"
+                        aria-label={`View details for ${server.name}`}
                       >
                         <td className="p-3">
                           <span className="font-medium">{server.name}</span>
