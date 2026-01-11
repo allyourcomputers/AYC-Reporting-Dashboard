@@ -37,7 +37,7 @@ export const monthlyStats = query({
     const monthlyMap = new Map<string, { total: number; closed: number }>();
 
     // Initialize all months in range
-    let current = new Date(startMonth + "-01");
+    const current = new Date(startMonth + "-01");
     const end = new Date(endMonth + "-01");
     while (current <= end) {
       const monthKey = current.toISOString().slice(0, 7);
@@ -48,11 +48,11 @@ export const monthlyStats = query({
     // Count tickets by month
     for (const ticket of tickets) {
       const monthKey = new Date(ticket.dateCreated).toISOString().slice(0, 7);
-      const current = monthlyMap.get(monthKey);
-      if (current) {
-        current.total++;
+      const entry = monthlyMap.get(monthKey);
+      if (entry) {
+        entry.total++;
         if (ticket.dateResolved) {
-          current.closed++;
+          entry.closed++;
         }
       }
     }
