@@ -5,6 +5,7 @@ import { AppLayout } from "@/components/layout/AppLayout"
 import { DashboardPage } from "@/pages/DashboardPage"
 import { ReportsPage } from "@/pages/ReportsPage"
 import { ServersPage } from "@/pages/ServersPage"
+import { ServerDetailPage } from "@/pages/ServerDetailPage"
 import { AdminUsersPage } from "@/pages/admin/AdminUsersPage"
 import { AdminCompaniesPage } from "@/pages/admin/AdminCompaniesPage"
 import { AdminDomainAssignmentPage } from "@/pages/admin/AdminDomainAssignmentPage"
@@ -33,7 +34,7 @@ export const router = createBrowserRouter([
           { path: "/", element: <DashboardPage /> },
           { path: "/reports", element: <ReportsPage /> },
           { path: "/servers", element: <ServersPage /> },
-          { path: "/servers/:deviceId", element: <div>Server Detail</div> },
+          { path: "/servers/:deviceId", element: <ServerDetailPage /> },
           { path: "/workstations", element: <WorkstationsPage /> },
           { path: "/workstations/:deviceId", element: <div>Workstation Detail</div> },
           { path: "/domains", element: <DomainsPage /> },
