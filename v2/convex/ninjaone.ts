@@ -742,7 +742,7 @@ export const getWorkstationDetails = action({
         os: {
           name: os?.name || device.nodeClass || "Unknown",
           version: os?.version || "",
-          type: getOSType(os?.name || "", device.nodeClass || "", true),
+          type: getOSType(os?.name || "", device.nodeClass || ""),
         },
         patches: {
           osPending: osPending.length,

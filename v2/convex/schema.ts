@@ -56,4 +56,25 @@ export default defineSchema({
   })
     .index("by_company", ["companyId"])
     .index("by_name", ["name"]),
+
+  feedback: defineTable({
+    haloPsaId: v.number(), // HaloPSA feedback ID
+    ticketId: v.optional(v.id("tickets")), // Optional - may not match an existing ticket
+    haloPsaTicketId: v.number(), // HaloPSA ticket ID for reference
+    score: v.optional(v.number()),
+    scoreBand: v.optional(v.string()),
+    date: v.optional(v.string()),
+    comment: v.optional(v.string()),
+  })
+    .index("by_halopsa_id", ["haloPsaId"])
+    .index("by_ticket", ["ticketId"]),
+
+  syncMetadata: defineTable({
+    syncType: v.string(), // "clients", "tickets", "feedback"
+    lastSync: v.string(),
+    recordsSynced: v.number(),
+    status: v.union(v.literal("success"), v.literal("failed")),
+    errorMessage: v.optional(v.string()),
+  })
+    .index("by_sync_type", ["syncType"]),
 });
