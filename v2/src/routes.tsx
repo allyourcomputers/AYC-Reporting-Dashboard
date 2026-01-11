@@ -1,6 +1,7 @@
 import { createBrowserRouter } from "react-router-dom"
 import { SignInPage } from "@/components/auth/SignInPage"
 import { ProtectedRoute } from "@/components/layout/ProtectedRoute"
+import { AppLayout } from "@/components/layout/AppLayout"
 
 // Placeholder pages - will be implemented later
 function DashboardPage() {
@@ -39,16 +40,21 @@ export const router = createBrowserRouter([
   {
     element: <ProtectedRoute />,
     children: [
-      { path: "/", element: <DashboardPage /> },
-      { path: "/reports", element: <ReportsPage /> },
-      { path: "/servers", element: <ServersPage /> },
-      { path: "/servers/:deviceId", element: <div>Server Detail</div> },
-      { path: "/workstations", element: <WorkstationsPage /> },
-      { path: "/workstations/:deviceId", element: <div>Workstation Detail</div> },
-      { path: "/domains", element: <DomainsPage /> },
-      { path: "/admin/users", element: <AdminUsersPage /> },
-      { path: "/admin/companies", element: <AdminCompaniesPage /> },
-      { path: "/admin/domain-assignments", element: <div>Domain Assignments</div> },
+      {
+        element: <AppLayout />,
+        children: [
+          { path: "/", element: <DashboardPage /> },
+          { path: "/reports", element: <ReportsPage /> },
+          { path: "/servers", element: <ServersPage /> },
+          { path: "/servers/:deviceId", element: <div>Server Detail</div> },
+          { path: "/workstations", element: <WorkstationsPage /> },
+          { path: "/workstations/:deviceId", element: <div>Workstation Detail</div> },
+          { path: "/domains", element: <DomainsPage /> },
+          { path: "/admin/users", element: <AdminUsersPage /> },
+          { path: "/admin/companies", element: <AdminCompaniesPage /> },
+          { path: "/admin/domain-assignments", element: <div>Domain Assignments</div> },
+        ],
+      },
     ],
   },
 ])
