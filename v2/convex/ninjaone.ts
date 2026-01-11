@@ -240,7 +240,7 @@ function calculateUptime(
 /**
  * Helper function to determine OS type
  */
-function getOSType(osName: string, nodeClass: string, isWorkstation: boolean = false): "windows" | "linux" | "mac" | "unknown" {
+function getOSType(osName: string, nodeClass: string): "windows" | "linux" | "mac" | "unknown" {
   const combined = (osName || nodeClass || "").toLowerCase();
 
   if (combined.includes("windows")) {
@@ -276,8 +276,7 @@ function transformDevice(
   osMap: Map<number, NinjaOSData>,
   computerSystemsMap: Map<number, NinjaComputerSystem>,
   osPatchMap: Map<number, NinjaPatch[]>,
-  softwarePatchMap: Map<number, NinjaPatch[]>,
-  isWorkstation: boolean = false
+  softwarePatchMap: Map<number, NinjaPatch[]>
 ): DeviceInfo {
   const os = osMap.get(device.id);
   const computerSystem = computerSystemsMap.get(device.id);
@@ -299,7 +298,7 @@ function transformDevice(
     os: {
       name: os?.name || device.nodeClass || "Unknown",
       version: os?.version || "",
-      type: getOSType(os?.name || "", device.nodeClass || "", isWorkstation),
+      type: getOSType(os?.name || "", device.nodeClass || ""),
     },
     patches: {
       osPending,
@@ -383,7 +382,13 @@ async function fetchEnrichmentData(token: string): Promise<{
  */
 export const getServers = action({
   args: {},
-  handler: async (): Promise<ServerResult> => {
+  handler: async (ctx): Promise<ServerResult> => {
+    // Require authenticated user
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthorized: Must be logged in to access server data");
+    }
+
     try {
       const token = await getNinjaOneToken();
 
@@ -435,7 +440,7 @@ export const getServers = action({
 
       // Transform and enrich device data
       const servers = devices.map((device) =>
-        transformDevice(device, orgMap, osMap, computerSystemsMap, osPatchMap, softwarePatchMap, false)
+        transformDevice(device, orgMap, osMap, computerSystemsMap, osPatchMap, softwarePatchMap)
       );
 
       // Calculate summary statistics
@@ -479,7 +484,13 @@ export const getServerDetails = action({
   args: {
     deviceId: v.number(),
   },
-  handler: async (_, { deviceId }): Promise<DeviceDetails> => {
+  handler: async (ctx, { deviceId }): Promise<DeviceDetails> => {
+    // Require authenticated user
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthorized: Must be logged in to access server details");
+    }
+
     try {
       const token = await getNinjaOneToken();
 
@@ -568,7 +579,13 @@ export const getServerDetails = action({
  */
 export const getWorkstations = action({
   args: {},
-  handler: async (): Promise<WorkstationResult> => {
+  handler: async (ctx): Promise<WorkstationResult> => {
+    // Require authenticated user
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthorized: Must be logged in to access workstation data");
+    }
+
     try {
       const token = await getNinjaOneToken();
 
@@ -616,7 +633,7 @@ export const getWorkstations = action({
 
       // Transform and enrich device data
       const workstations = devices.map((device) =>
-        transformDevice(device, orgMap, osMap, computerSystemsMap, osPatchMap, softwarePatchMap, true)
+        transformDevice(device, orgMap, osMap, computerSystemsMap, osPatchMap, softwarePatchMap)
       );
 
       // Calculate summary statistics
@@ -660,7 +677,13 @@ export const getWorkstationDetails = action({
   args: {
     deviceId: v.number(),
   },
-  handler: async (_, { deviceId }): Promise<DeviceDetails> => {
+  handler: async (ctx, { deviceId }): Promise<DeviceDetails> => {
+    // Require authenticated user
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthorized: Must be logged in to access workstation details");
+    }
+
     // Workstations use the same detail structure as servers
     try {
       const token = await getNinjaOneToken();
