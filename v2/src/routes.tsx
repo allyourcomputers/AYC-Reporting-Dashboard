@@ -2,11 +2,9 @@ import { createBrowserRouter } from "react-router-dom"
 import { SignInPage } from "@/components/auth/SignInPage"
 import { ProtectedRoute } from "@/components/layout/ProtectedRoute"
 import { AppLayout } from "@/components/layout/AppLayout"
+import { DashboardPage } from "@/pages/DashboardPage"
 
 // Placeholder pages - will be implemented later
-function DashboardPage() {
-  return <div className="p-8"><h1 className="text-2xl font-bold">Dashboard</h1></div>
-}
 
 function ReportsPage() {
   return <div className="p-8"><h1 className="text-2xl font-bold">Reports</h1></div>
