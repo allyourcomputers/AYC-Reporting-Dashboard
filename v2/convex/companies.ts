@@ -41,3 +41,64 @@ export const create = mutation({
     });
   },
 });
+
+export const update = mutation({
+  args: {
+    companyId: v.id("companies"),
+    name: v.string(),
+    haloPsaClientId: v.optional(v.string()),
+    isActive: v.boolean(),
+  },
+  handler: async (ctx, { companyId, name, haloPsaClientId, isActive }) => {
+    const user = await getAuthenticatedUser(ctx);
+    requireSuperAdmin(user);
+
+    await ctx.db.patch(companyId, { name, haloPsaClientId, isActive });
+    return companyId;
+  },
+});
+
+export const remove = mutation({
+  args: { companyId: v.id("companies") },
+  handler: async (ctx, { companyId }) => {
+    const user = await getAuthenticatedUser(ctx);
+    requireSuperAdmin(user);
+
+    // Check if company has assigned users
+    const userAssocs = await ctx.db
+      .query("userCompanies")
+      .withIndex("by_company", (q) => q.eq("companyId", companyId))
+      .first();
+
+    if (userAssocs) {
+      throw new Error("Cannot delete company with assigned users");
+    }
+
+    await ctx.db.delete(companyId);
+  },
+});
+
+export const listWithUserCount = query({
+  args: {},
+  handler: async (ctx) => {
+    const user = await getAuthenticatedUser(ctx);
+    requireSuperAdmin(user);
+
+    const companies = await ctx.db.query("companies").collect();
+
+    const companiesWithUserCount = await Promise.all(
+      companies.map(async (company) => {
+        const userAssocs = await ctx.db
+          .query("userCompanies")
+          .withIndex("by_company", (q) => q.eq("companyId", company._id))
+          .collect();
+        return {
+          ...company,
+          userCount: userAssocs.length,
+        };
+      })
+    );
+
+    return companiesWithUserCount;
+  },
+});
