@@ -12,4 +12,13 @@ crons.interval(
   { monthsBack: 12 } // Sync last 12 months of tickets
 );
 
+// Run 20i domain sync daily at 2:00 AM UTC
+// Domains don't change often, so daily sync is sufficient
+crons.daily(
+  "sync_twentyi_domains",
+  { hourUTC: 2, minuteUTC: 0 },
+  internal.twentyi.scheduledSyncDomains,
+  {}
+);
+
 export default crons;

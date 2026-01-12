@@ -48,14 +48,17 @@ export default defineSchema({
     .index("by_halopsa_id", ["haloPsaId"]),
 
   domains: defineTable({
-    companyId: v.optional(v.id("companies")),
+    twentyiId: v.string(), // 20i domain ID
     name: v.string(),
-    expiryDate: v.optional(v.number()),
-    registrar: v.optional(v.string()),
-    twentyiId: v.optional(v.string()),
+    expiryDate: v.string(),
+    status: v.union(v.literal("active"), v.literal("expiring-soon"), v.literal("expired")),
+    hasHosting: v.boolean(),
+    hostingPackageName: v.optional(v.string()),
+    companyId: v.optional(v.id("companies")), // Link to company via domain assignment
   })
-    .index("by_company", ["companyId"])
-    .index("by_name", ["name"]),
+    .index("by_twentyi_id", ["twentyiId"])
+    .index("by_name", ["name"])
+    .index("by_company", ["companyId"]),
 
   feedback: defineTable({
     haloPsaId: v.number(), // HaloPSA feedback ID
