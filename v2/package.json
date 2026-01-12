@@ -7,7 +7,12 @@
     "dev": "vite",
     "build": "tsc -p tsconfig.app.json && tsc -p convex --noEmit && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "typecheck": "tsc -p tsconfig.app.json && tsc -p convex --noEmit",
+    "deploy:convex": "./scripts/deploy/deploy-convex.sh",
+    "deploy:verify": "./scripts/deploy/verify-deployment.sh",
+    "migrate:export": "node scripts/migration/export-supabase.mjs",
+    "migrate:import": "node scripts/migration/import-to-convex.mjs"
   },
   "dependencies": {
     "@clerk/clerk-react": "^5.59.3",
