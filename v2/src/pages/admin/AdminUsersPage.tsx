@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
@@ -28,9 +28,8 @@ type UserRole = "super_admin" | "admin" | "customer";
 type UserWithCompanies = {
   _id: Id<"users">;
   _creationTime: number;
-  clerkId: string;
-  email: string;
-  name: string;
+  email?: string;
+  name?: string;
   role: UserRole;
   activeCompanyId?: Id<"companies">;
   impersonatingUserId?: Id<"users">;
@@ -87,11 +86,12 @@ function UserFormDialog({
   onOpenChange: (open: boolean) => void;
   user: UserWithCompanies | null;
   companies: Company[];
-  onSubmit: (data: { email: string; name: string; role: UserRole; companyIds: Id<"companies">[] }) => void;
+  onSubmit: (data: { email: string; name: string; password?: string; role: UserRole; companyIds: Id<"companies">[] }) => void;
   isSubmitting: boolean;
 }) {
   const [email, setEmail] = useState(user?.email ?? "");
   const [name, setName] = useState(user?.name ?? "");
+  const [password, setPassword] = useState("");
   const [role, setRole] = useState<UserRole>(user?.role ?? "customer");
   const [selectedCompanyIds, setSelectedCompanyIds] = useState<Id<"companies">[]>(
     user?.companies.map((c) => c._id) ?? []
@@ -101,6 +101,7 @@ function UserFormDialog({
   const resetForm = () => {
     setEmail(user?.email ?? "");
     setName(user?.name ?? "");
+    setPassword("");
     setRole(user?.role ?? "customer");
     setSelectedCompanyIds(user?.companies.map((c) => c._id) ?? []);
   };
@@ -114,7 +115,7 @@ function UserFormDialog({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit({ email, name, role, companyIds: selectedCompanyIds });
+    onSubmit({ email, name, password: password || undefined, role, companyIds: selectedCompanyIds });
   };
 
   const toggleCompany = (companyId: Id<"companies">) => {
@@ -135,7 +136,7 @@ function UserFormDialog({
           <DialogDescription>
             {isEditMode
               ? "Update the user's information and company assignments."
-              : "Create a new user account. They will be able to sign in via Clerk."}
+              : "Create a new user account. They will sign in with these credentials."}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
@@ -167,6 +168,23 @@ function UserFormDialog({
                 required
               />
             </div>
+            {!isEditMode && (
+              <div className="grid gap-2">
+                <Label htmlFor="password">Initial Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Set initial password"
+                  required
+                  minLength={8}
+                />
+                <p className="text-xs text-muted-foreground">
+                  User will use this password to sign in. Minimum 8 characters.
+                </p>
+              </div>
+            )}
             <div className="grid gap-2">
               <Label htmlFor="role">Role</Label>
               <Select value={role} onValueChange={(v) => setRole(v as UserRole)}>
@@ -259,7 +277,7 @@ export function AdminUsersPage() {
   const usersWithCompanies = useQuery(api.users.getWithCompanies);
   const companies = useQuery(api.companies.list);
 
-  const createUser = useMutation(api.users.create);
+  const createUser = useAction(api.users.create);
   const updateUser = useMutation(api.users.update);
   const removeUser = useMutation(api.users.remove);
   const startImpersonation = useMutation(api.users.startImpersonation);
@@ -299,12 +317,23 @@ export function AdminUsersPage() {
   const handleCreate = async (data: {
     email: string;
     name: string;
+    password?: string;
     role: UserRole;
     companyIds: Id<"companies">[];
   }) => {
+    if (!data.password) {
+      alert("Password is required for new users");
+      return;
+    }
     setIsSubmitting(true);
     try {
-      await createUser(data);
+      await createUser({
+        email: data.email,
+        name: data.name,
+        password: data.password,
+        role: data.role,
+        companyIds: data.companyIds,
+      });
       setShowCreateDialog(false);
     } catch (error) {
       alert(error instanceof Error ? error.message : "Failed to create user");

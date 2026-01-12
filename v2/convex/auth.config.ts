@@ -1,7 +1,7 @@
 export default {
   providers: [
     {
-      domain: "https://helpful-fowl-33.clerk.accounts.dev",
+      domain: process.env.CONVEX_SITE_URL,
       applicationID: "convex",
     },
   ],

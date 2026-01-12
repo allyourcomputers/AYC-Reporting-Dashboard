@@ -1,11 +1,20 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import { authTables } from "@convex-dev/auth/server";
 
 export default defineSchema({
+  ...authTables,
+  // Override the users table from authTables with our custom fields
   users: defineTable({
-    clerkId: v.string(),
-    email: v.string(),
-    name: v.string(),
+    // Convex Auth fields
+    name: v.optional(v.string()),
+    image: v.optional(v.string()),
+    email: v.optional(v.string()),
+    emailVerificationTime: v.optional(v.number()),
+    phone: v.optional(v.string()),
+    phoneVerificationTime: v.optional(v.number()),
+    isAnonymous: v.optional(v.boolean()),
+    // App-specific fields
     role: v.union(
       v.literal("super_admin"),
       v.literal("admin"),
@@ -13,9 +22,11 @@ export default defineSchema({
     ),
     activeCompanyId: v.optional(v.id("companies")),
     impersonatingUserId: v.optional(v.id("users")),
+    // Migration: keep clerkId for existing users during transition
+    clerkId: v.optional(v.string()),
   })
-    .index("by_clerk_id", ["clerkId"])
-    .index("by_email", ["email"]),
+    .index("email", ["email"])
+    .index("by_clerk_id", ["clerkId"]),
 
   companies: defineTable({
     name: v.string(),

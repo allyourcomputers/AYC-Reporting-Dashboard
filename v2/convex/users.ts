@@ -1,80 +1,74 @@
-import { query, mutation, internalQuery } from "./_generated/server";
+import { query, mutation, action, internalQuery, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { getAuthenticatedUser, requireSuperAdmin } from "./lib/auth";
+import { createAccount } from "@convex-dev/auth/server";
+import { internal } from "./_generated/api";
 
-/**
- * Bootstrap function to create the first super_admin user.
- * This only works if there are NO existing users in the database.
- * Run via CLI: npx convex run --prod users:bootstrap '{"email": "your@email.com", "name": "Your Name"}'
- */
-export const bootstrap = mutation({
-  args: {
-    email: v.string(),
-    name: v.string(),
-  },
-  handler: async (ctx, { email, name }) => {
-    // Check if any users exist
+// Internal mutation to check if users exist (for bootstrap)
+export const checkUsersExist = internalQuery({
+  args: {},
+  handler: async (ctx) => {
     const existingUsers = await ctx.db.query("users").first();
-    if (existingUsers) {
-      throw new Error("Bootstrap failed: Users already exist. Use the admin interface to create new users.");
+    return !!existingUsers;
+  },
+});
+
+// Internal mutation to check if email exists
+export const checkEmailExists = internalQuery({
+  args: { email: v.string() },
+  handler: async (ctx, { email }) => {
+    const existingUser = await ctx.db
+      .query("users")
+      .withIndex("email", (q) => q.eq("email", email))
+      .unique();
+    return !!existingUser;
+  },
+});
+
+// Internal mutation to create company associations
+export const createCompanyAssociations = internalMutation({
+  args: {
+    userId: v.id("users"),
+    companyIds: v.array(v.id("companies")),
+  },
+  handler: async (ctx, { userId, companyIds }) => {
+    for (const companyId of companyIds) {
+      await ctx.db.insert("userCompanies", { userId, companyId });
     }
-
-    // Create the first super_admin user
-    const userId = await ctx.db.insert("users", {
-      clerkId: "", // Will be set on first Clerk sign-in
-      email,
-      name,
-      role: "super_admin",
-    });
-
-    return { userId, message: "Super admin created. Sign in with Clerk using this email." };
   },
 });
 
 /**
- * Link a Clerk account to an existing user by email.
- * Called automatically on first sign-in when user exists but clerkId is empty.
+ * Bootstrap function to create the first super_admin user.
+ * This only works if there are NO existing users in the database.
+ * Run via CLI: npx convex run --prod users:bootstrap '{"email": "your@email.com", "name": "Your Name", "password": "initial-password"}'
  */
-export const linkClerkAccount = mutation({
-  args: {},
-  handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Not authenticated");
+export const bootstrap = action({
+  args: {
+    email: v.string(),
+    name: v.string(),
+    password: v.string(),
+  },
+  handler: async (ctx, { email, name, password }) => {
+    // Check if any users exist
+    const usersExist = await ctx.runQuery(internal.users.checkUsersExist, {});
+    if (usersExist) {
+      throw new Error("Bootstrap failed: Users already exist. Use the admin interface to create new users.");
     }
 
-    // Check if already linked
-    const existingByClerkId = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
-      .unique();
+    // Create the first super_admin user with Convex Auth
+    const result = await createAccount(ctx, {
+      provider: "password",
+      account: { id: email, secret: password },
+      profile: {
+        email,
+        name,
+        role: "super_admin" as const,
+      },
+      shouldLinkViaEmail: true,
+    });
 
-    if (existingByClerkId) {
-      return { success: true, message: "Already linked" };
-    }
-
-    // Find user by email
-    if (!identity.email) {
-      throw new Error("No email in Clerk identity. Add email claim to JWT template.");
-    }
-
-    const userByEmail = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", identity.email as string))
-      .unique();
-
-    if (!userByEmail) {
-      throw new Error("No user found with email: " + identity.email);
-    }
-
-    if (userByEmail.clerkId && userByEmail.clerkId !== identity.subject) {
-      throw new Error("Email already linked to another Clerk account");
-    }
-
-    // Link the account
-    await ctx.db.patch(userByEmail._id, { clerkId: identity.subject });
-
-    return { success: true, message: "Account linked successfully" };
+    return { userId: result.user._id, message: "Super admin created. Sign in with your email and password." };
   },
 });
 
@@ -98,37 +92,41 @@ export const listAllUsers = internalQuery({
 
 // User CRUD operations
 
-export const create = mutation({
+export const create = action({
   args: {
     email: v.string(),
     name: v.string(),
+    password: v.string(),
     role: v.union(v.literal("super_admin"), v.literal("admin"), v.literal("customer")),
     companyIds: v.array(v.id("companies")),
   },
-  handler: async (ctx, { email, name, role, companyIds }) => {
-    const user = await getAuthenticatedUser(ctx);
-    requireSuperAdmin(user);
+  handler: async (ctx, { email, name, password, role, companyIds }) => {
+    // Verify super admin role
+    await ctx.runQuery(internal.users.verifySuperAdmin, {});
 
     // Check if user with email already exists
-    const existingUser = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", email))
-      .unique();
-    if (existingUser) {
+    const emailExists = await ctx.runQuery(internal.users.checkEmailExists, { email });
+    if (emailExists) {
       throw new Error("User with this email already exists");
     }
 
-    // Create user (clerkId will be set when user signs in via Clerk)
-    const userId = await ctx.db.insert("users", {
-      clerkId: "", // Will be set on first Clerk sign-in
-      email,
-      name,
-      role,
+    // Create user with Convex Auth
+    const result = await createAccount(ctx, {
+      provider: "password",
+      account: { id: email, secret: password },
+      profile: {
+        email,
+        name,
+        role,
+      },
+      shouldLinkViaEmail: true,
     });
 
+    const userId = result.user._id;
+
     // Create company associations
-    for (const companyId of companyIds) {
-      await ctx.db.insert("userCompanies", { userId, companyId });
+    if (companyIds.length > 0) {
+      await ctx.runMutation(internal.users.createCompanyAssociations, { userId, companyIds });
     }
 
     return userId;

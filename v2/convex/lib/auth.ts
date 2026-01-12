@@ -1,9 +1,9 @@
 import type { QueryCtx, MutationCtx } from "../_generated/server";
 import type { Id } from "../_generated/dataModel";
+import { getAuthUserId } from "@convex-dev/auth/server";
 
 export type AuthenticatedUser = {
   _id: Id<"users">;
-  clerkId: string;
   email: string;
   name: string;
   role: "super_admin" | "admin" | "customer";
@@ -16,33 +16,58 @@ export type AuthenticatedUser = {
 export async function getAuthenticatedUser(
   ctx: QueryCtx | MutationCtx
 ): Promise<AuthenticatedUser> {
-  const identity = await ctx.auth.getUserIdentity();
-  if (!identity) {
+  const userId = await getAuthUserId(ctx);
+  if (!userId) {
     throw new Error("Not authenticated");
   }
 
-  const user = await ctx.db
-    .query("users")
-    .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
-    .unique();
+  const user = await ctx.db.get(userId);
 
   if (!user) {
-    throw new Error("User not found. Please wait while your account is being linked.");
+    throw new Error("User not found");
+  }
+
+  // Ensure required fields exist
+  if (!user.email || !user.name || !user.role) {
+    throw new Error("User profile incomplete. Please contact administrator.");
   }
 
   // Handle impersonation
   if (user.impersonatingUserId) {
     const impersonated = await ctx.db.get(user.impersonatingUserId);
-    if (impersonated) {
+    if (impersonated && impersonated.email && impersonated.name && impersonated.role) {
       return {
-        ...impersonated,
+        _id: impersonated._id,
+        email: impersonated.email,
+        name: impersonated.name,
+        role: impersonated.role,
+        activeCompanyId: impersonated.activeCompanyId,
+        impersonatingUserId: impersonated.impersonatingUserId,
         isImpersonating: true,
-        realUser: { ...user, isImpersonating: false, realUser: null },
+        realUser: {
+          _id: user._id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+          activeCompanyId: user.activeCompanyId,
+          impersonatingUserId: user.impersonatingUserId,
+          isImpersonating: false,
+          realUser: null,
+        },
       };
     }
   }
 
-  return { ...user, isImpersonating: false, realUser: null };
+  return {
+    _id: user._id,
+    email: user.email,
+    name: user.name,
+    role: user.role,
+    activeCompanyId: user.activeCompanyId,
+    impersonatingUserId: user.impersonatingUserId,
+    isImpersonating: false,
+    realUser: null,
+  };
 }
 
 export function getCompanyFilter(user: AuthenticatedUser): Id<"companies"> | null {

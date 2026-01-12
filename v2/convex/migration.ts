@@ -61,7 +61,7 @@ export const importUser = mutation({
     // Check if user already exists by email
     const existing = await ctx.db
       .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .withIndex("email", (q) => q.eq("email", args.email))
       .unique();
 
     if (existing) {
