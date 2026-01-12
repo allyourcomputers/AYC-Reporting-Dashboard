@@ -10,6 +10,7 @@
     "preview": "vite preview",
     "typecheck": "tsc -p tsconfig.app.json && tsc -p convex --noEmit",
     "deploy:convex": "./scripts/deploy/deploy-convex.sh",
+    "deploy:docker": "./scripts/deploy/deploy-docker.sh",
     "deploy:verify": "./scripts/deploy/verify-deployment.sh",
     "migrate:export": "node scripts/migration/export-supabase.mjs",
     "migrate:import": "node scripts/migration/import-to-convex.mjs"
