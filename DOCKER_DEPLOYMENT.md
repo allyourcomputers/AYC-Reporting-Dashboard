@@ -1,527 +1,375 @@
-# Docker Deployment Guide
+# Docker Deployment Guide (v2)
 
-This guide explains how to build and deploy the HaloPSA Reporting Dashboard using Docker.
+This guide explains how to deploy the HaloPSA Reporting Dashboard v2 using Docker.
 
 ## Prerequisites
 
 - Docker installed (version 20.10+)
 - Docker Compose installed (version 2.0+)
-- `.env` file configured with your credentials
+- Node.js 18+ (for Convex CLI)
+- Convex account and project
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                     Docker Host                          │
+│  ┌─────────────────────────────────────────────────┐   │
+│  │            halo-reporting-v2 container           │   │
+│  │  ┌─────────────────────────────────────────┐    │   │
+│  │  │         Nginx (static files)            │    │   │
+│  │  │         React SPA (Vite build)          │    │   │
+│  │  └─────────────────────────────────────────┘    │   │
+│  └─────────────────────────────────────────────────┘   │
+│                           │                              │
+│                           ▼                              │
+│                    Port 3200 (configurable)              │
+└─────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+              ┌─────────────────────────────┐
+              │      Convex Cloud           │
+              │  - Database                 │
+              │  - Backend functions        │
+              │  - Real-time subscriptions  │
+              │  - Authentication           │
+              └─────────────────────────────┘
+```
+
+The Docker container only serves the static frontend. All backend logic runs on Convex.
 
 ## Quick Start
 
-### 1. Configure Environment
-
-Make sure your `.env` file is configured:
+### 1. Clone and Configure
 
 ```bash
-cp .env.example .env
-nano .env
+git clone https://github.com/allyourcomputers/AYC-Reporting-Dashboard.git
+cd AYC-Reporting-Dashboard/v2
+
+# Create .env file
+cp .env.production .env
 ```
 
-**Important for Docker deployment:**
-- Set `SUPABASE_URL` to your publicly accessible Supabase URL (e.g., `http://yourdomain.com:8000`)
-- Set `PORT=3100` (this is internal to the container)
-- **Note:** Port 3100 is used to avoid conflicts with Supabase, which typically runs on port 3000
-
-### 2. Build and Run with Docker Compose
+### 2. Deploy with Script (Recommended)
 
 ```bash
-# Build and start the container
-docker-compose up -d
-
-# View logs
-docker-compose logs -f
-
-# Stop the container
-docker-compose down
+./deploy.sh
 ```
 
-The application will be available at `http://localhost:3100`
+The script automatically:
+- Checks/generates Convex Auth environment variables
+- Prompts for SITE_URL if not set
+- Pulls latest code from GitHub
+- Deploys Convex functions
+- Builds Docker image
+- Starts container
+- Creates first admin user if needed
 
-## Automated Data Synchronization
+### 3. Access the Application
 
-The Docker container includes a **cron job** that automatically syncs data from HaloPSA to Supabase **every day at 2am UTC**.
+```
+http://localhost:3200
+```
 
-### Sync Features
+## Manual Deployment
 
-- **Automatic daily sync** - No manual intervention required
-- **Logs** - All sync operations are logged to `/var/log/sync.log`
-- **Configurable** - You can customize the sync schedule by modifying the `crontab` file
+### Step 1: Set Convex Environment Variables
 
-### Viewing Sync Logs
+In Convex Dashboard > Settings > Environment Variables, set:
+
+```
+AUTH_SECRET=<generate with: openssl rand -base64 32>
+JWT_PRIVATE_KEY=<generate with: openssl genpkey -algorithm RSA -pkcs8>
+SITE_URL=https://your-production-domain.com
+
+HALO_API_URL=https://your-halo.halopsa.com/api
+HALO_CLIENT_ID=your_client_id
+HALO_CLIENT_SECRET=your_client_secret
+
+NINJA_CLIENT_ID=your_ninja_client_id
+NINJA_CLIENT_SECRET=your_ninja_client_secret
+NINJA_BASE_URL=https://app.ninjarmm.com
+
+TWENTYI_API_KEY=your_20i_api_key
+```
+
+### Step 2: Deploy Convex Functions
 
 ```bash
-# View sync logs in real-time
-docker exec -it halo-reporting tail -f /var/log/sync.log
-
-# View last 100 lines of sync logs
-docker exec -it halo-reporting tail -100 /var/log/sync.log
-
-# View all sync logs
-docker exec -it halo-reporting cat /var/log/sync.log
+npx convex deploy
 ```
 
-### Manual Sync
+### Step 3: Configure Frontend
 
-You can also trigger a sync manually:
+Edit `.env`:
+
+```env
+VITE_CONVEX_URL=https://your-project.convex.cloud
+PORT=3200
+```
+
+### Step 4: Build and Run
 
 ```bash
-# Run sync inside the container
-docker exec -it halo-reporting node sync-service.js
-
-# Or trigger via API (requires authentication)
-curl -X POST http://localhost:3100/api/sync \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+docker compose build
+docker compose up -d
 ```
 
-### Customizing Sync Schedule
-
-To change when the sync runs, edit the `crontab` file before building:
+### Step 5: Create First Admin User
 
 ```bash
-# Edit crontab
-nano crontab
-
-# Examples:
-# Run every 6 hours: 0 */6 * * * /app/sync-cron.sh
-# Run at 3am daily: 0 3 * * * /app/sync-cron.sh
-# Run twice daily (2am & 2pm): 0 2,14 * * * /app/sync-cron.sh
+npx convex run users:bootstrap '{"email": "admin@example.com", "name": "Admin", "password": "SecurePassword123"}'
 ```
 
-Then rebuild the container:
-```bash
-docker-compose build
-docker-compose up -d
-```
+## Updating the Application
 
-### 3. Deploy on Custom Port
-
-To run on port 80:
+### Using deploy.sh (Recommended)
 
 ```bash
-# Edit docker-compose.yml or set environment variable
-export PORT=80
-docker-compose up -d
+./deploy.sh
 ```
 
-Or edit `docker-compose.yml`:
+This handles everything: git pull, Convex deploy, Docker rebuild.
+
+### Manual Update
+
+```bash
+# Pull latest code
+git pull origin feature/react-convex-migration
+
+# Deploy Convex functions
+npx convex deploy
+
+# Rebuild Docker
+docker compose down
+docker compose build --no-cache
+docker compose up -d
+```
+
+## Docker Compose Configuration
+
+### docker-compose.yml
+
 ```yaml
-ports:
-  - "80:3100"
+services:
+  halo-reporting-v2:
+    build:
+      context: .
+      args:
+        - VITE_CONVEX_URL=${VITE_CONVEX_URL}
+    container_name: halo-reporting-v2
+    ports:
+      - "${PORT:-3200}:80"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 ```
 
-## Manual Docker Build
-
-If you prefer to use Docker directly without docker-compose:
-
-### Build the Image
+### Custom Port
 
 ```bash
-docker build -t halo-reporting:latest .
+# Option 1: Environment variable
+PORT=8080 docker compose up -d
+
+# Option 2: Edit .env
+echo "PORT=8080" >> .env
+docker compose up -d
 ```
 
-### Run the Container
+## Behind Reverse Proxy (Nginx)
 
-```bash
-docker run -d \
-  --name halo-reporting \
-  -p 3000:3100 \
-  --env-file .env \
-  --restart unless-stopped \
-  halo-reporting:latest
+### docker-compose.yml for proxy setup
+
+```yaml
+services:
+  halo-reporting-v2:
+    ports:
+      - "127.0.0.1:3200:80"  # Only bind to localhost
 ```
 
-### Run on Port 80
+### Nginx configuration
 
-```bash
-docker run -d \
-  --name halo-reporting \
-  -p 80:3100 \
-  --env-file .env \
-  --restart unless-stopped \
-  halo-reporting:latest
+```nginx
+server {
+    listen 80;
+    server_name reports.example.com;
+    return 301 https://$server_name$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name reports.example.com;
+
+    ssl_certificate /etc/letsencrypt/live/reports.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/reports.example.com/privkey.pem;
+
+    location / {
+        proxy_pass http://localhost:3200;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
 ```
 
-## Docker Commands
+## Docker Commands Reference
 
 ### Container Management
 
 ```bash
-# View running containers
-docker ps
-
-# View all containers (including stopped)
-docker ps -a
+# View status
+docker compose ps
 
 # View logs
-docker logs halo-reporting
+docker compose logs -f
 
-# Follow logs in real-time
-docker logs -f halo-reporting
+# Restart
+docker compose restart
 
-# Stop container
-docker stop halo-reporting
+# Stop
+docker compose down
 
-# Start container
-docker start halo-reporting
-
-# Restart container
-docker restart halo-reporting
-
-# Remove container
-docker rm halo-reporting
-
-# Remove container (force)
-docker rm -f halo-reporting
-```
-
-### Image Management
-
-```bash
-# List images
-docker images
-
-# Remove image
-docker rmi halo-reporting:latest
-
-# Build with no cache
-docker build --no-cache -t halo-reporting:latest .
-
-# Tag image for registry
-docker tag halo-reporting:latest registry.example.com/halo-reporting:latest
+# Remove with volumes
+docker compose down -v
 ```
 
 ### Debugging
 
 ```bash
-# Execute commands inside running container
-docker exec -it halo-reporting sh
+# Shell into container
+docker exec -it halo-reporting-v2 sh
 
-# View container resource usage
-docker stats halo-reporting
+# Check nginx config
+docker exec halo-reporting-v2 nginx -t
 
-# Inspect container configuration
-docker inspect halo-reporting
-
-# Check health status
-docker inspect --format='{{.State.Health.Status}}' halo-reporting
+# View nginx logs
+docker exec halo-reporting-v2 cat /var/log/nginx/error.log
 ```
 
-## Production Deployment
-
-### Using Docker Compose (Recommended)
-
-1. **Clone repository on your server:**
-```bash
-git clone https://github.com/allyourcomputers/AYC-Reporting-Dashboard.git
-cd AYC-Reporting-Dashboard
-```
-
-2. **Configure environment:**
-```bash
-cp .env.example .env
-nano .env
-```
-
-Set production values:
-```env
-HALO_API_URL=https://helpdesk.allyourcomputers.co.uk/api
-HALO_CLIENT_ID=your-production-client-id
-HALO_CLIENT_SECRET=your-production-client-secret
-SUPABASE_URL=http://allyoursoftware.co.uk:8000
-SUPABASE_KEY=your-production-anon-key
-PORT=3100
-```
-
-3. **Deploy:**
-```bash
-docker-compose up -d
-```
-
-4. **Verify deployment:**
-```bash
-docker-compose ps
-docker-compose logs -f
-curl http://localhost:3100/api/config
-```
-
-### Behind Nginx Reverse Proxy
-
-If using Nginx as a reverse proxy:
-
-**docker-compose.yml:**
-```yaml
-services:
-  halo-reporting:
-    ports:
-      - "127.0.0.1:3100:3100"  # Only bind to localhost
-```
-
-**Nginx configuration:**
-```nginx
-server {
-    listen 80;
-    server_name yourdomain.com;
-
-    location / {
-        proxy_pass http://localhost:3100;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-```
-
-## Multi-Stage Build (Advanced)
-
-For a smaller production image, create `Dockerfile.multistage`:
-
-```dockerfile
-# Build stage
-FROM node:20-alpine AS builder
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci
-COPY . .
-
-# Production stage
-FROM node:20-alpine
-WORKDIR /app
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package*.json ./
-COPY --from=builder /app/*.js ./
-COPY --from=builder /app/public ./public
-
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nodejs -u 1001
-USER nodejs
-
-EXPOSE 3000
-CMD ["node", "server-supabase.js"]
-```
-
-Build with:
-```bash
-docker build -f Dockerfile.multistage -t halo-reporting:latest .
-```
-
-## Docker with Supabase (All-in-One)
-
-If running Supabase in Docker on the same server, use Docker networking:
-
-**docker-compose.yml:**
-```yaml
-version: '3.8'
-
-services:
-  halo-reporting:
-    build: .
-    ports:
-      - "80:3100"
-    environment:
-      - SUPABASE_URL=http://supabase:8000
-    networks:
-      - app-network
-    depends_on:
-      - supabase
-
-  supabase:
-    # Your Supabase container configuration
-    networks:
-      - app-network
-
-networks:
-  app-network:
-    driver: bridge
-```
-
-## Updating the Application
-
-### Option 1: Automated Deployment Script (Recommended)
-
-Use the provided deployment script for one-command updates:
+### Health Check
 
 ```bash
-# Full deployment (clean rebuild, no cache)
-./deploy.sh
+# Check container health
+docker inspect --format='{{.State.Health.Status}}' halo-reporting-v2
 
-# Quick deployment (uses cache, faster)
-./quick-deploy.sh
-```
-
-**deploy.sh features:**
-- ✅ Checks for local changes
-- ✅ Stops container gracefully
-- ✅ Pulls latest code from GitHub
-- ✅ Rebuilds image from scratch (no cache)
-- ✅ Starts container
-- ✅ Verifies deployment
-- ✅ Shows logs and status
-- ✅ Error handling and rollback
-
-**quick-deploy.sh features:**
-- ✅ Faster deployment (uses Docker cache)
-- ✅ Same workflow, minimal output
-- ✅ Good for routine updates
-
-### Option 2: Manual Update
-
-If you prefer to run commands manually:
-
-```bash
-# Pull latest code
-git pull origin main
-
-# Rebuild and restart
-docker-compose down
-docker-compose build --no-cache
-docker-compose up -d
-
-# Or in one command (uses cache)
-docker-compose up -d --build
-```
-
-## Troubleshooting
-
-### Container Won't Start
-
-Check logs:
-```bash
-docker-compose logs halo-reporting
-```
-
-Common issues:
-- Missing `.env` file
-- Invalid environment variables
-- Port already in use
-
-### Port Already in Use
-
-```bash
-# Find what's using the port
-sudo netstat -tlnp | grep :3100
-
-# Stop the conflicting service or change the port
-```
-
-### Permission Denied on Port 80
-
-Run docker-compose with sudo or add your user to the docker group:
-```bash
-sudo usermod -aG docker $USER
-# Log out and back in for changes to take effect
-```
-
-### Cannot Connect to Application
-
-1. Check container is running:
-```bash
-docker ps
-```
-
-2. Check container health:
-```bash
-docker inspect --format='{{.State.Health.Status}}' halo-reporting
-```
-
-3. Test from inside container:
-```bash
-docker exec -it halo-reporting sh
-wget -O- http://localhost:3100/api/config
-```
-
-4. Check firewall:
-```bash
-sudo ufw status
-sudo ufw allow 3000
+# Manual health check
+curl http://localhost:3200/health
 ```
 
 ## Environment Variables Reference
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `HALO_API_URL` | HaloPSA API endpoint | `https://helpdesk.example.com/api` |
-| `HALO_CLIENT_ID` | HaloPSA OAuth client ID | `your-client-id` |
-| `HALO_CLIENT_SECRET` | HaloPSA OAuth client secret | `your-secret` |
-| `SUPABASE_URL` | Supabase instance URL | `http://example.com:8000` |
-| `SUPABASE_KEY` | Supabase anon/public key | `eyJhbGc...` |
-| `PORT` | Port to run on (inside container) | `3000` |
-| `NODE_ENV` | Node environment | `production` |
+### Frontend (.env file)
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `VITE_CONVEX_URL` | Yes | - | Convex deployment URL |
+| `PORT` | No | 3200 | Host port to expose |
+
+### Convex Dashboard
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `AUTH_SECRET` | Yes | Session encryption key |
+| `JWT_PRIVATE_KEY` | Yes | RSA private key for JWT |
+| `SITE_URL` | Yes | Production URL |
+| `HALO_API_URL` | For HaloPSA | HaloPSA API endpoint |
+| `HALO_CLIENT_ID` | For HaloPSA | HaloPSA OAuth client ID |
+| `HALO_CLIENT_SECRET` | For HaloPSA | HaloPSA OAuth secret |
+| `NINJA_CLIENT_ID` | For NinjaOne | NinjaOne client ID |
+| `NINJA_CLIENT_SECRET` | For NinjaOne | NinjaOne client secret |
+| `NINJA_BASE_URL` | For NinjaOne | NinjaOne API URL |
+| `TWENTYI_API_KEY` | For 20i | 20i Reseller API key |
+
+## Troubleshooting
+
+### Container won't start
+
+```bash
+# Check logs
+docker compose logs halo-reporting-v2
+
+# Common issues:
+# - .env file missing
+# - Port already in use
+# - VITE_CONVEX_URL not set
+```
+
+### Port already in use
+
+```bash
+# Find what's using the port
+sudo lsof -i :3200
+
+# Use a different port
+PORT=3201 docker compose up -d
+```
+
+### Build fails
+
+```bash
+# Clear Docker cache
+docker builder prune -a
+
+# Rebuild from scratch
+docker compose build --no-cache
+```
+
+### Sign-in not working
+
+1. Check Convex Dashboard logs for errors
+2. Verify environment variables are set:
+   - `AUTH_SECRET`
+   - `JWT_PRIVATE_KEY`
+   - `SITE_URL`
+3. Redeploy Convex: `npx convex deploy`
+
+### Blank page after deployment
+
+1. Check browser console for errors
+2. Verify `VITE_CONVEX_URL` is correct
+3. Check Convex deployment is active
+4. Try hard refresh (Ctrl+Shift+R)
+
+## Data Sync
+
+Data sync runs on Convex scheduled functions, not in Docker:
+
+| Sync | Schedule | Trigger Manually |
+|------|----------|------------------|
+| HaloPSA | Daily 2am UTC | `npx convex run sync/halopsa:syncTickets` |
+| 20i | Daily 3am UTC | `npx convex run sync/twentyi:syncDomains` |
+
+## Backup
+
+The Docker container is stateless - all data is in Convex. For backup:
+
+1. **Convex data**: Use Convex Dashboard export or snapshot features
+2. **Docker image**: `docker save halo-reporting-v2 > backup.tar`
+3. **Configuration**: Backup `.env` file (don't commit to git)
 
 ## Security Best Practices
 
-1. **Never commit `.env` files** - They contain secrets
-2. **Use Docker secrets** for sensitive data in production
-3. **Run as non-root user** - Already configured in Dockerfile
-4. **Keep images updated** - Regularly rebuild with latest base image
-5. **Scan for vulnerabilities:**
-```bash
-docker scan halo-reporting:latest
-```
-
-## Monitoring
-
-### Docker Stats
-```bash
-# Real-time stats
-docker stats halo-reporting
-
-# One-time stats
-docker stats --no-stream halo-reporting
-```
-
-### Health Checks
-```bash
-# Check health status
-docker inspect --format='{{json .State.Health}}' halo-reporting | jq
-```
-
-### Logs
-```bash
-# Last 100 lines
-docker logs --tail 100 halo-reporting
-
-# Since specific time
-docker logs --since 1h halo-reporting
-
-# Export logs
-docker logs halo-reporting > app.log 2>&1
-```
-
-## Backup and Restore
-
-### Backup
-```bash
-# Export container
-docker export halo-reporting > halo-reporting-backup.tar
-
-# Save image
-docker save halo-reporting:latest > halo-reporting-image.tar
-```
-
-### Restore
-```bash
-# Load image
-docker load < halo-reporting-image.tar
-
-# Run from backup
-docker import halo-reporting-backup.tar
-```
+1. **Never commit `.env`** - Contains deployment-specific values
+2. **Use HTTPS** - Put behind Nginx with SSL
+3. **Restrict ports** - Bind to localhost when using reverse proxy
+4. **Keep updated** - Run `./deploy.sh` regularly for updates
+5. **Rotate secrets** - Periodically rotate `AUTH_SECRET` and `JWT_PRIVATE_KEY`
 
 ## Next Steps
 
-After deploying with Docker:
+After deployment:
 
-1. Set up user accounts in Supabase (see `AUTH_SETUP.md`)
-2. Configure reverse proxy if needed (Nginx/Apache)
-3. Set up SSL/TLS certificates (Let's Encrypt)
-4. Configure automated backups
-5. Set up monitoring and alerts
-
-For PM2 deployment, see `PRODUCTION_SETUP.md`
+1. Create admin user (if not done by deploy.sh)
+2. Configure API integrations in Convex Dashboard
+3. Run initial data sync
+4. Set up SSL with Let's Encrypt
+5. Configure monitoring/alerting

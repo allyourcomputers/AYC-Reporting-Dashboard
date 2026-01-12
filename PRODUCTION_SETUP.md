@@ -1,231 +1,300 @@
-# Production Deployment Setup
+# Production Deployment Setup (v2)
 
-## Quick Setup with PM2 (Recommended)
+This guide covers production deployment for HaloPSA Reporting Dashboard v2 (React + Convex).
 
-PM2 is a process manager that keeps your Node.js app running in the background, restarts it on crashes, and starts on server reboot.
+## Recommended: Docker Deployment
 
-### Step 1: Install PM2
+Docker is the recommended deployment method for v2. See [DOCKER_DEPLOYMENT.md](DOCKER_DEPLOYMENT.md) for complete instructions.
 
-SSH into your web server and run:
+### Quick Start
+
 ```bash
-sudo npm install -g pm2
+cd v2
+cp .env.production .env
+./deploy.sh
 ```
 
-### Step 2: Configure Your Environment
+The deploy script handles everything automatically.
 
-Make sure your `.env` file is set up for production:
+## Architecture Overview
+
+```
+┌─────────────────────────────────────┐
+│           Your Server               │
+│  ┌───────────────────────────────┐  │
+│  │   Docker Container            │  │
+│  │   (Nginx + Static React)      │  │
+│  │   Port 3200                   │  │
+│  └───────────────────────────────┘  │
+│              │                       │
+│              ▼                       │
+│  ┌───────────────────────────────┐  │
+│  │   Nginx Reverse Proxy         │  │
+│  │   (SSL termination)           │  │
+│  │   Port 443                    │  │
+│  └───────────────────────────────┘  │
+└─────────────────────────────────────┘
+              │
+              ▼
+┌─────────────────────────────────────┐
+│         Convex Cloud                │
+│  - Database                         │
+│  - Backend functions                │
+│  - Authentication                   │
+│  - Scheduled sync jobs              │
+└─────────────────────────────────────┘
+```
+
+Key differences from v1:
+- **No Express.js server** - Frontend is static files served by Nginx
+- **No database on your server** - All data in Convex cloud
+- **No cron jobs on server** - Convex handles scheduled functions
+- **Simpler deployment** - Just static files + Convex functions
+
+## Prerequisites
+
+- Docker and Docker Compose
+- Node.js 18+ (for Convex CLI)
+- Domain name with DNS configured
+- SSL certificate (Let's Encrypt recommended)
+
+## Step-by-Step Deployment
+
+### 1. Clone Repository
+
 ```bash
-# In your app directory
+git clone https://github.com/allyourcomputers/AYC-Reporting-Dashboard.git
+cd AYC-Reporting-Dashboard/v2
+```
+
+### 2. Configure Environment
+
+```bash
+cp .env.production .env
 nano .env
 ```
 
-Set the PORT to 80 (or keep it at 3000 if using a reverse proxy):
-```
-PORT=80
+Set your Convex URL:
+```env
+VITE_CONVEX_URL=https://your-project.convex.cloud
+PORT=3200
 ```
 
-### Step 3: Start Your App with PM2
+### 3. Run Deployment Script
 
 ```bash
-# Navigate to your app directory
-cd /path/to/halo-reporting
-
-# Start the app with PM2
-pm2 start server-supabase.js --name halo-reporting
-
-# Save the PM2 process list
-pm2 save
-
-# Setup PM2 to start on server reboot
-pm2 startup
-# Follow the command it gives you (will look like: sudo env PATH=...)
+./deploy.sh
 ```
 
-### Step 4: Verify It's Running
+On first run, the script will:
+1. Generate and set `AUTH_SECRET` in Convex
+2. Generate and set `JWT_PRIVATE_KEY` in Convex
+3. Prompt for `SITE_URL` (your production URL)
+4. Deploy Convex functions
+5. Build Docker image
+6. Start container
+7. Prompt to create first admin user
+
+### 4. Configure SSL (Nginx Reverse Proxy)
+
+Install Nginx:
+```bash
+sudo apt install nginx
+```
+
+Create site configuration:
+```bash
+sudo nano /etc/nginx/sites-available/reports
+```
+
+```nginx
+server {
+    listen 80;
+    server_name reports.yourdomain.com;
+    return 301 https://$server_name$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name reports.yourdomain.com;
+
+    ssl_certificate /etc/letsencrypt/live/reports.yourdomain.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/reports.yourdomain.com/privkey.pem;
+
+    location / {
+        proxy_pass http://localhost:3200;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+```
+
+Enable site and get SSL:
+```bash
+sudo ln -s /etc/nginx/sites-available/reports /etc/nginx/sites-enabled/
+sudo certbot --nginx -d reports.yourdomain.com
+sudo systemctl reload nginx
+```
+
+### 5. Verify Deployment
 
 ```bash
-# Check status
-pm2 status
+# Check Docker container
+docker compose ps
 
-# View logs
-pm2 logs halo-reporting
+# Check health endpoint
+curl http://localhost:3200/health
 
-# Test the endpoint
-curl http://localhost:80/api/config
+# Check HTTPS
+curl https://reports.yourdomain.com
 ```
 
-### Common PM2 Commands
+## Updating the Application
 
 ```bash
-# View app status
-pm2 list
-
-# View logs
-pm2 logs halo-reporting
-
-# Restart app
-pm2 restart halo-reporting
-
-# Stop app
-pm2 stop halo-reporting
-
-# Delete from PM2
-pm2 delete halo-reporting
-
-# Monitor in real-time
-pm2 monit
+cd /path/to/AYC-Reporting-Dashboard/v2
+./deploy.sh
 ```
 
-## Alternative: Systemd Service (If You Can't Use PM2)
+The script automatically:
+- Pulls latest code
+- Deploys Convex functions
+- Rebuilds Docker image
+- Restarts container
 
-If you cannot install PM2, you can create a systemd service:
+## Convex Environment Variables
 
-### Create Service File
+These must be set in **Convex Dashboard** (not on your server):
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `AUTH_SECRET` | Yes | Session encryption |
+| `JWT_PRIVATE_KEY` | Yes | JWT signing key |
+| `SITE_URL` | Yes | Your production URL |
+| `HALO_API_URL` | For HaloPSA | API endpoint |
+| `HALO_CLIENT_ID` | For HaloPSA | OAuth client ID |
+| `HALO_CLIENT_SECRET` | For HaloPSA | OAuth secret |
+| `NINJA_CLIENT_ID` | For NinjaOne | API client ID |
+| `NINJA_CLIENT_SECRET` | For NinjaOne | API secret |
+| `NINJA_BASE_URL` | For NinjaOne | API URL |
+| `TWENTYI_API_KEY` | For 20i | Reseller API key |
+
+## Data Synchronization
+
+Data sync runs automatically via Convex scheduled functions:
+
+| Service | Schedule | Description |
+|---------|----------|-------------|
+| HaloPSA | Daily 2am UTC | Syncs tickets and clients |
+| 20i | Daily 3am UTC | Syncs domain data |
+
+Manual sync:
+```bash
+npx convex run sync/halopsa:syncTickets
+npx convex run sync/twentyi:syncDomains
+```
+
+## Monitoring
+
+### Docker Health
 
 ```bash
-sudo nano /etc/systemd/system/halo-reporting.service
+# Container status
+docker compose ps
+
+# Container logs
+docker compose logs -f
+
+# Resource usage
+docker stats halo-reporting-v2
 ```
 
-Add this content (adjust paths to match your server):
-```ini
-[Unit]
-Description=HaloPSA Reporting Dashboard
-After=network.target
+### Convex Dashboard
 
-[Service]
-Type=simple
-User=your-username
-WorkingDirectory=/path/to/halo-reporting
-Environment=NODE_ENV=production
-ExecStart=/usr/bin/node /path/to/halo-reporting/server-supabase.js
-Restart=on-failure
-RestartSec=10
+- View function logs
+- Monitor database usage
+- Check scheduled function execution
+- View error rates
 
-[Install]
-WantedBy=multi-user.target
-```
-
-### Enable and Start the Service
+### Health Endpoint
 
 ```bash
-# Reload systemd
-sudo systemctl daemon-reload
-
-# Enable service to start on boot
-sudo systemctl enable halo-reporting
-
-# Start the service
-sudo systemctl start halo-reporting
-
-# Check status
-sudo systemctl status halo-reporting
-
-# View logs
-sudo journalctl -u halo-reporting -f
+curl http://localhost:3200/health
 ```
 
-## Temporary Solution: Screen/Tmux
+## Backup Strategy
 
-If you need a quick temporary solution (NOT recommended for production):
+All data is stored in Convex cloud. For backup:
 
-### Using Screen
+1. **Convex data**: Use Convex Dashboard export features
+2. **Configuration**: Backup your `.env` file securely
+3. **Convex env vars**: Document them securely (they're in Dashboard)
+
+## Security Checklist
+
+- [ ] HTTPS enabled with valid SSL certificate
+- [ ] Docker container not exposed directly (use reverse proxy)
+- [ ] `AUTH_SECRET` is unique and secure
+- [ ] `JWT_PRIVATE_KEY` is properly generated RSA key
+- [ ] `.env` file not committed to git
+- [ ] Firewall configured (only 80/443 exposed)
+- [ ] Regular updates via `./deploy.sh`
+
+## Troubleshooting
+
+### Sign-in not working
+
+1. Check Convex Dashboard logs
+2. Verify all auth env vars are set:
+   - `AUTH_SECRET`
+   - `JWT_PRIVATE_KEY`
+   - `SITE_URL`
+3. Redeploy: `npx convex deploy`
+
+### Container won't start
 
 ```bash
-# Install screen
-sudo apt-get install screen  # Ubuntu/Debian
-# or
-sudo yum install screen      # CentOS/RHEL
-
-# Start a screen session
-screen -S halo-reporting
-
-# Start your app
-npm start
-
-# Detach from screen: Press Ctrl+A, then D
-
-# Reattach later
-screen -r halo-reporting
-
-# List sessions
-screen -ls
+docker compose logs halo-reporting-v2
 ```
 
-## Port 80 Permissions
+Common issues:
+- Missing `.env` file
+- Invalid `VITE_CONVEX_URL`
+- Port conflict
 
-If you're running on port 80, you may need to:
+### Blank page
 
-### Option 1: Use authbind (Recommended)
-```bash
-# Install authbind
-sudo apt-get install authbind  # Ubuntu/Debian
+1. Check browser console for errors
+2. Verify `VITE_CONVEX_URL` points to correct Convex deployment
+3. Check Convex deployment status in Dashboard
 
-# Allow your user to bind to port 80
-sudo touch /etc/authbind/byport/80
-sudo chmod 500 /etc/authbind/byport/80
-sudo chown your-username /etc/authbind/byport/80
+### API sync failing
 
-# Start with PM2 using authbind
-pm2 start server-supabase.js --name halo-reporting -- --port 80
-```
+1. Check Convex Dashboard function logs
+2. Verify API credentials are set correctly
+3. Test API connectivity from Convex functions
 
-### Option 2: Use setcap
-```bash
-# Give Node.js permission to bind to privileged ports
-sudo setcap 'cap_net_bind_service=+ep' $(which node)
-```
+## Migration from v1
 
-### Option 3: Use a Higher Port with Reverse Proxy (Best Practice)
-Keep your app on port 3100 and use Nginx or Apache as a reverse proxy on port 80.
+If upgrading from the Supabase version:
 
-## Checking Current Process
+1. Deploy v2 alongside v1 (different port/subdomain)
+2. Run data migration script: `v2/scripts/migrate-from-supabase.ts`
+3. Create new user accounts (passwords don't migrate)
+4. Test thoroughly
+5. Switch DNS to v2
+6. Decommission v1
 
-To see if your app is currently running:
-```bash
-# Check for Node.js processes
-ps aux | grep node
+---
 
-# Check what's listening on port 80
-sudo netstat -tlnp | grep :80
+## Legacy: PM2 Deployment (v1 Only)
 
-# Check what's listening on port 3100
-sudo netstat -tlnp | grep :3100
+The PM2 deployment method is for v1 (Supabase version) only. For v2, use Docker.
 
-# Kill a stuck process if needed
-sudo kill -9 PID_NUMBER
-```
-
-## Deployment Workflow
-
-After setting up PM2, your deployment workflow becomes:
-
-```bash
-# SSH into server
-ssh your-server
-
-# Navigate to app directory
-cd /path/to/halo-reporting
-
-# Pull latest code
-git pull origin main
-
-# Install any new dependencies
-npm install
-
-# Restart the app
-pm2 restart halo-reporting
-
-# Check it's running
-pm2 status
-pm2 logs halo-reporting --lines 50
-```
-
-## Next Steps
-
-1. Install PM2 on your web server
-2. Configure `.env` for production (PORT=80)
-3. Start your app with PM2
-4. Test the login page
-5. Set up PM2 to start on server reboot
-
-Your app will now stay running even after you close your SSH session!
+If you need to run v1, see the git history for the original PRODUCTION_SETUP.md content.
