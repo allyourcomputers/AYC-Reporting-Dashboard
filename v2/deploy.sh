@@ -217,7 +217,16 @@ else
 fi
 echo ""
 
-# Step 4: Deploy Convex functions
+# Step 4: Install dependencies
+print_status "Installing npm dependencies..."
+if npm install --omit=dev 2>&1; then
+    print_success "Dependencies installed successfully"
+else
+    print_warning "npm install had warnings (continuing anyway)"
+fi
+echo ""
+
+# Step 5: Deploy Convex functions
 print_status "Deploying Convex functions to production..."
 print_warning "This updates your backend schema and functions..."
 
@@ -234,7 +243,7 @@ else
 fi
 echo ""
 
-# Step 5: Rebuild Docker image
+# Step 6: Rebuild Docker image
 print_status "Rebuilding Docker image..."
 print_warning "This may take a few minutes..."
 if docker compose build --no-cache; then
@@ -247,7 +256,7 @@ else
 fi
 echo ""
 
-# Step 6: Start the container
+# Step 7: Start the container
 print_status "Starting Docker container..."
 if docker compose up -d; then
     print_success "Container started successfully"
@@ -257,7 +266,7 @@ else
 fi
 echo ""
 
-# Step 7: Wait for container to be healthy
+# Step 8: Wait for container to be healthy
 print_status "Waiting for container to be healthy..."
 CONTAINER_NAME="halo-reporting-v2"
 MAX_ATTEMPTS=30
@@ -284,7 +293,7 @@ while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
 done
 echo ""
 
-# Step 8: Check if bootstrap user is needed
+# Step 9: Check if bootstrap user is needed
 print_status "Checking if bootstrap user is needed..."
 USER_COUNT=$(npx convex run migration:getAllUsers '{}' 2>/dev/null | grep -c "_id" || echo "0")
 if [ "$USER_COUNT" = "0" ]; then
@@ -314,7 +323,7 @@ else
 fi
 echo ""
 
-# Step 9: Display status
+# Step 10: Display status
 print_status "Deployment Summary:"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 docker compose ps
