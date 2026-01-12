@@ -7,6 +7,7 @@ import { ReportsPage } from "@/pages/ReportsPage"
 import { ServersPage } from "@/pages/ServersPage"
 import { ServerDetailPage } from "@/pages/ServerDetailPage"
 import { WorkstationsPage } from "@/pages/WorkstationsPage"
+import { WorkstationDetailPage } from "@/pages/WorkstationDetailPage"
 import { DomainsPage } from "@/pages/DomainsPage"
 import { AdminUsersPage } from "@/pages/admin/AdminUsersPage"
 import { AdminCompaniesPage } from "@/pages/admin/AdminCompaniesPage"
@@ -29,7 +30,7 @@ export const router = createBrowserRouter([
           { path: "/servers", element: <ServersPage /> },
           { path: "/servers/:deviceId", element: <ServerDetailPage /> },
           { path: "/workstations", element: <WorkstationsPage /> },
-          { path: "/workstations/:deviceId", element: <div>Workstation Detail</div> },
+          { path: "/workstations/:deviceId", element: <WorkstationDetailPage /> },
           { path: "/domains", element: <DomainsPage /> },
           { path: "/admin/users", element: <AdminUsersPage /> },
           { path: "/admin/companies", element: <AdminCompaniesPage /> },
