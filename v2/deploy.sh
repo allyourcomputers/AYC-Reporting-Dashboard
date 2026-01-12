@@ -54,11 +54,6 @@ if [ ! -f ".env" ]; then
     echo "Required variables:"
     echo "  VITE_CONVEX_URL=https://your-project.convex.cloud"
     echo "  PORT=3200"
-    echo ""
-    echo "Also set these in Convex Dashboard > Settings > Environment Variables:"
-    echo "  AUTH_SECRET        (openssl rand -base64 32)"
-    echo "  JWT_PRIVATE_KEY    (RSA PKCS#8 private key)"
-    echo "  SITE_URL           (your production URL)"
     exit 1
 fi
 print_success ".env file found"
@@ -74,12 +69,83 @@ echo ""
 
 # Check if npx/convex is available for deployment
 if ! command -v npx &> /dev/null; then
-    print_warning "npx not found - will skip Convex function deployment"
-    print_warning "Run 'npx convex deploy' manually to update Convex functions"
-    SKIP_CONVEX_DEPLOY=true
-else
-    SKIP_CONVEX_DEPLOY=false
+    print_error "npx not found - required for Convex deployment"
+    print_error "Please install Node.js and npm"
+    exit 1
 fi
+
+# Function to check if a Convex env var is set
+check_convex_env() {
+    local var_name=$1
+    local result=$(npx convex env get "$var_name" 2>/dev/null || echo "")
+    if [ -z "$result" ] || [ "$result" = "undefined" ]; then
+        return 1  # Not set
+    fi
+    return 0  # Set
+}
+
+# Function to set Convex env var
+set_convex_env() {
+    local var_name=$1
+    local var_value=$2
+    npx convex env set "$var_name" "$var_value" 2>/dev/null
+}
+
+# Setup Convex Auth environment variables
+print_status "Checking Convex Auth environment variables..."
+echo ""
+
+# Check and set AUTH_SECRET
+if check_convex_env "AUTH_SECRET"; then
+    print_success "AUTH_SECRET is already set"
+else
+    print_warning "AUTH_SECRET not set - generating..."
+    AUTH_SECRET=$(openssl rand -base64 32)
+    if set_convex_env "AUTH_SECRET" "$AUTH_SECRET"; then
+        print_success "AUTH_SECRET generated and set"
+    else
+        print_error "Failed to set AUTH_SECRET"
+        exit 1
+    fi
+fi
+
+# Check and set JWT_PRIVATE_KEY
+if check_convex_env "JWT_PRIVATE_KEY"; then
+    print_success "JWT_PRIVATE_KEY is already set"
+else
+    print_warning "JWT_PRIVATE_KEY not set - generating RSA key..."
+    # Generate RSA PKCS#8 key and convert newlines to \n for storage
+    JWT_PRIVATE_KEY=$(openssl genpkey -algorithm RSA -pkcs8 2>/dev/null | awk '{printf "%s\\n", $0}')
+    if set_convex_env "JWT_PRIVATE_KEY" "$JWT_PRIVATE_KEY"; then
+        print_success "JWT_PRIVATE_KEY generated and set"
+    else
+        print_error "Failed to set JWT_PRIVATE_KEY"
+        exit 1
+    fi
+fi
+
+# Check and set SITE_URL
+if check_convex_env "SITE_URL"; then
+    print_success "SITE_URL is already set"
+else
+    print_warning "SITE_URL not set"
+    echo ""
+    echo "SITE_URL is your production frontend URL (e.g., https://reports.example.com)"
+    echo "This is used for password reset emails and auth callbacks."
+    echo ""
+    read -p "Enter your production URL: " SITE_URL
+    if [ -z "$SITE_URL" ]; then
+        print_error "SITE_URL is required"
+        exit 1
+    fi
+    if set_convex_env "SITE_URL" "$SITE_URL"; then
+        print_success "SITE_URL set to: $SITE_URL"
+    else
+        print_error "Failed to set SITE_URL"
+        exit 1
+    fi
+fi
+echo ""
 
 print_status "Starting deployment process..."
 echo ""
@@ -123,28 +189,21 @@ fi
 echo ""
 
 # Step 4: Deploy Convex functions
-if [ "$SKIP_CONVEX_DEPLOY" = false ]; then
-    print_status "Deploying Convex functions to production..."
-    print_warning "This updates your backend schema and functions..."
+print_status "Deploying Convex functions to production..."
+print_warning "This updates your backend schema and functions..."
 
-    if npx convex deploy --yes; then
-        print_success "Convex functions deployed successfully"
-    else
-        print_error "Failed to deploy Convex functions"
-        print_warning "Check that Convex Auth env vars are set in Convex Dashboard:"
-        echo "  - AUTH_SECRET"
-        echo "  - JWT_PRIVATE_KEY (RSA PKCS#8 format)"
-        echo "  - SITE_URL"
-        echo ""
-        read -p "Continue with Docker deployment anyway? (y/n) " -n 1 -r
-        echo
-        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-            print_error "Deployment cancelled."
-            exit 1
-        fi
+if npx convex deploy --yes; then
+    print_success "Convex functions deployed successfully"
+else
+    print_error "Failed to deploy Convex functions"
+    read -p "Continue with Docker deployment anyway? (y/n) " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        print_error "Deployment cancelled."
+        exit 1
     fi
-    echo ""
 fi
+echo ""
 
 # Step 5: Rebuild Docker image
 print_status "Rebuilding Docker image..."
@@ -196,7 +255,37 @@ while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
 done
 echo ""
 
-# Step 8: Display status
+# Step 8: Check if bootstrap user is needed
+print_status "Checking if bootstrap user is needed..."
+USER_COUNT=$(npx convex run migration:getAllUsers '{}' 2>/dev/null | grep -c "_id" || echo "0")
+if [ "$USER_COUNT" = "0" ]; then
+    print_warning "No users found in database - bootstrap required"
+    echo ""
+    echo "Create the first admin user:"
+    read -p "  Email: " ADMIN_EMAIL
+    read -p "  Name: " ADMIN_NAME
+    read -sp "  Password: " ADMIN_PASSWORD
+    echo ""
+
+    if [ -n "$ADMIN_EMAIL" ] && [ -n "$ADMIN_NAME" ] && [ -n "$ADMIN_PASSWORD" ]; then
+        print_status "Creating admin user..."
+        if npx convex run users:bootstrap "{\"email\": \"$ADMIN_EMAIL\", \"name\": \"$ADMIN_NAME\", \"password\": \"$ADMIN_PASSWORD\"}"; then
+            print_success "Admin user created: $ADMIN_EMAIL"
+        else
+            print_error "Failed to create admin user"
+            print_warning "You can create one manually later with:"
+            echo "  npx convex run users:bootstrap '{\"email\": \"admin@example.com\", \"name\": \"Admin\", \"password\": \"SecurePassword\"}'"
+        fi
+    else
+        print_warning "Skipping bootstrap - you can create a user later with:"
+        echo "  npx convex run users:bootstrap '{\"email\": \"admin@example.com\", \"name\": \"Admin\", \"password\": \"SecurePassword\"}'"
+    fi
+else
+    print_success "Users already exist in database"
+fi
+echo ""
+
+# Step 9: Display status
 print_status "Deployment Summary:"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 docker compose ps
@@ -228,9 +317,4 @@ echo ""
 print_status "Convex backend:"
 echo "  Dashboard:     https://dashboard.convex.dev"
 echo "  Convex URL:    $VITE_CONVEX_URL"
-echo ""
-print_status "First-time setup (if no users exist):"
-echo "  npx convex run users:bootstrap '{\"email\": \"admin@example.com\", \"name\": \"Admin\", \"password\": \"SecurePassword123\"}'"
-echo ""
-print_warning "Remember: AUTH_SECRET, JWT_PRIVATE_KEY, and SITE_URL must be set in Convex Dashboard!"
 echo ""
