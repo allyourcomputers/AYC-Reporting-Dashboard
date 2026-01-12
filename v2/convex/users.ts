@@ -88,6 +88,14 @@ export const verifySuperAdmin = internalQuery({
   },
 });
 
+// Internal query to list all users (for debugging)
+export const listAllUsers = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.db.query("users").collect();
+  },
+});
+
 // User CRUD operations
 
 export const create = mutation({
