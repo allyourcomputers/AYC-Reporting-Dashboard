@@ -26,3 +26,4 @@ convex/_generated
 *.sln
 *.sw?
 convex/tsconfig.tsbuildinfo
+scripts/migration/*.json

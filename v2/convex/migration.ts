@@ -1,13 +1,13 @@
-import { internalMutation, internalQuery } from "./_generated/server";
+import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
 /**
  * Migration utilities for importing data from Supabase
- * These are internal functions only callable by the migration script
+ * Note: These mutations are public during migration, remove after migration is complete
  */
 
 // Import a company
-export const importCompany = internalMutation({
+export const importCompany = mutation({
   args: {
     supabaseId: v.string(), // Original Supabase UUID for mapping
     name: v.string(),
@@ -45,7 +45,7 @@ export const importCompany = internalMutation({
 });
 
 // Import a user
-export const importUser = internalMutation({
+export const importUser = mutation({
   args: {
     supabaseUserId: v.string(), // Original Supabase user UUID for mapping
     email: v.string(),
@@ -86,7 +86,7 @@ export const importUser = internalMutation({
 });
 
 // Import a user-company association
-export const importUserCompany = internalMutation({
+export const importUserCompany = mutation({
   args: {
     userConvexId: v.id("users"),
     companyConvexId: v.id("companies"),
@@ -114,7 +114,7 @@ export const importUserCompany = internalMutation({
 });
 
 // Import domain assignment
-export const importDomainAssignment = internalMutation({
+export const importDomainAssignment = mutation({
   args: {
     domainName: v.string(),
     companyConvexId: v.id("companies"),
@@ -138,7 +138,7 @@ export const importDomainAssignment = internalMutation({
 });
 
 // Get all companies for mapping lookup
-export const getAllCompanies = internalQuery({
+export const getAllCompanies = query({
   args: {},
   handler: async (ctx) => {
     return await ctx.db.query("companies").collect();
@@ -146,7 +146,7 @@ export const getAllCompanies = internalQuery({
 });
 
 // Get all users for mapping lookup
-export const getAllUsers = internalQuery({
+export const getAllUsers = query({
   args: {},
   handler: async (ctx) => {
     return await ctx.db.query("users").collect();
@@ -154,7 +154,7 @@ export const getAllUsers = internalQuery({
 });
 
 // Clear all data (use with caution!)
-export const clearAllData = internalMutation({
+export const clearAllData = mutation({
   args: {
     confirm: v.literal("I_UNDERSTAND_THIS_DELETES_EVERYTHING"),
   },
