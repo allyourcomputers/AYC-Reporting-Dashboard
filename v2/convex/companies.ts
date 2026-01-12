@@ -102,3 +102,45 @@ export const listWithUserCount = query({
     return companiesWithUserCount;
   },
 });
+
+/**
+ * List companies that have at least one ticket, sorted alphabetically
+ * Used for reports dropdown
+ */
+export const listWithTickets = query({
+  args: {},
+  handler: async (ctx) => {
+    const user = await getAuthenticatedUser(ctx);
+
+    // Get all companies the user can see
+    let companies;
+    if (user.role === "super_admin") {
+      companies = await ctx.db.query("companies").collect();
+    } else {
+      const userCompanies = await ctx.db
+        .query("userCompanies")
+        .withIndex("by_user", (q) => q.eq("userId", user._id))
+        .collect();
+      const companyIds = userCompanies.map((uc) => uc.companyId);
+      const companyDocs = await Promise.all(companyIds.map((id) => ctx.db.get(id)));
+      companies = companyDocs.filter(Boolean);
+    }
+
+    // Filter to only companies with tickets
+    const companiesWithTickets = await Promise.all(
+      companies.map(async (company) => {
+        if (!company) return null;
+        const hasTicket = await ctx.db
+          .query("tickets")
+          .withIndex("by_company", (q) => q.eq("companyId", company._id))
+          .first();
+        return hasTicket ? company : null;
+      })
+    );
+
+    // Filter nulls and sort alphabetically by name
+    return companiesWithTickets
+      .filter((c): c is NonNullable<typeof c> => c !== null)
+      .sort((a, b) => a.name.localeCompare(b.name));
+  },
+});

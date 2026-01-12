@@ -17,7 +17,7 @@ import { FileText, Download, Ticket, CheckCircle, AlertCircle } from "lucide-rea
 
 export function ReportsPage() {
   const user = useQuery(api.users.me);
-  const companies = useQuery(api.companies.list);
+  const companies = useQuery(api.companies.listWithTickets);
 
   const now = new Date();
   const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
@@ -46,8 +46,8 @@ export function ReportsPage() {
     setShowResults(true);
   };
 
-  // Filter out null companies (from Promise.all in the query)
-  const validCompanies = companies?.filter((c): c is NonNullable<typeof c> => c !== null) ?? [];
+  // Companies are already filtered (only those with tickets) and sorted alphabetically
+  const validCompanies = companies ?? [];
 
   const selectedCompanyName =
     selectedCompany && validCompanies.length > 0
