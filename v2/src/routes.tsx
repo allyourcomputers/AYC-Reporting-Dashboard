@@ -11,6 +11,7 @@ import { DomainsPage } from "@/pages/DomainsPage"
 import { AdminUsersPage } from "@/pages/admin/AdminUsersPage"
 import { AdminCompaniesPage } from "@/pages/admin/AdminCompaniesPage"
 import { AdminDomainAssignmentPage } from "@/pages/admin/AdminDomainAssignmentPage"
+import { AdminSyncPage } from "@/pages/admin/AdminSyncPage"
 
 export const router = createBrowserRouter([
   {
@@ -33,6 +34,7 @@ export const router = createBrowserRouter([
           { path: "/admin/users", element: <AdminUsersPage /> },
           { path: "/admin/companies", element: <AdminCompaniesPage /> },
           { path: "/admin/domain-assignments", element: <AdminDomainAssignmentPage /> },
+          { path: "/admin/sync", element: <AdminSyncPage /> },
         ],
       },
     ],
