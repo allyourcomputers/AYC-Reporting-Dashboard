@@ -63,7 +63,8 @@ function get20iToken(): string {
   }
 
   // 20i API requires base64-encoded API key as Bearer token
-  return Buffer.from(apiKey).toString("base64");
+  // Use btoa() instead of Buffer since Convex runs in V8, not Node.js
+  return btoa(apiKey);
 }
 
 /**
