@@ -1,6 +1,6 @@
-import { query, mutation, internalMutation } from "./_generated/server";
+import { query, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
-import { getAuthenticatedUser, getCompanyFilter, requireSuperAdmin } from "./lib/auth";
+import { getAuthenticatedUser, getCompanyFilter } from "./lib/auth";
 
 /**
  * List all feedback entries, optionally filtered by company
