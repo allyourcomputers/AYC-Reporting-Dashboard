@@ -8,6 +8,7 @@ import {
   Globe,
   Users,
   Building2,
+  RefreshCw,
 } from "lucide-react"
 
 const navItems = [
@@ -21,6 +22,7 @@ const navItems = [
 const adminItems = [
   { to: "/admin/users", icon: Users, label: "Users" },
   { to: "/admin/companies", icon: Building2, label: "Companies" },
+  { to: "/admin/sync", icon: RefreshCw, label: "Sync" },
 ]
 
 export function Sidebar() {
