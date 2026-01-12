@@ -17,7 +17,7 @@ ARG VITE_CONVEX_URL
 ARG VITE_CLERK_PUBLISHABLE_KEY
 
 # Generate Convex types (required for TypeScript compilation)
-RUN npx convex codegen
+RUN npx convex codegen --url ${VITE_CONVEX_URL}
 
 # Build the application
 RUN npm run build
