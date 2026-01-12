@@ -38,10 +38,16 @@ export const bootstrap = mutation({
 export const linkClerkAccount = mutation({
   args: {},
   handler: async (ctx) => {
+    console.log("linkClerkAccount: Starting...");
+
     const identity = await ctx.auth.getUserIdentity();
+    console.log("linkClerkAccount: Identity:", JSON.stringify(identity, null, 2));
+
     if (!identity) {
       throw new Error("Not authenticated");
     }
+
+    console.log("linkClerkAccount: Checking if already linked by clerkId:", identity.subject);
 
     // Check if already linked
     const existingByClerkId = await ctx.db
@@ -49,19 +55,27 @@ export const linkClerkAccount = mutation({
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
       .unique();
 
+    console.log("linkClerkAccount: existingByClerkId result:", existingByClerkId);
+
     if (existingByClerkId) {
       return { success: true, message: "Already linked" };
     }
 
     // Find user by email
+    console.log("linkClerkAccount: Checking email:", identity.email);
+
     if (!identity.email) {
       throw new Error("No email in Clerk identity");
     }
+
+    console.log("linkClerkAccount: Looking up user by email:", identity.email);
 
     const userByEmail = await ctx.db
       .query("users")
       .withIndex("by_email", (q) => q.eq("email", identity.email as string))
       .unique();
+
+    console.log("linkClerkAccount: userByEmail result:", userByEmail);
 
     if (!userByEmail) {
       throw new Error("No user found with email: " + identity.email);
@@ -71,9 +85,12 @@ export const linkClerkAccount = mutation({
       throw new Error("Email already linked to another Clerk account");
     }
 
+    console.log("linkClerkAccount: Patching user", userByEmail._id, "with clerkId:", identity.subject);
+
     // Link the account
     await ctx.db.patch(userByEmail._id, { clerkId: identity.subject });
 
+    console.log("linkClerkAccount: Success!");
     return { success: true, message: "Account linked successfully" };
   },
 });
