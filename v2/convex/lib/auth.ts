@@ -27,7 +27,7 @@ export async function getAuthenticatedUser(
     .unique();
 
   if (!user) {
-    throw new Error("User not found in database");
+    throw new Error("User not found. Please wait while your account is being linked.");
   }
 
   // Handle impersonation

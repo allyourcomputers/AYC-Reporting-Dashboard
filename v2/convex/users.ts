@@ -2,6 +2,82 @@ import { query, mutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 import { getAuthenticatedUser, requireSuperAdmin } from "./lib/auth";
 
+/**
+ * Bootstrap function to create the first super_admin user.
+ * This only works if there are NO existing users in the database.
+ * Run via CLI: npx convex run --prod users:bootstrap '{"email": "your@email.com", "name": "Your Name"}'
+ */
+export const bootstrap = mutation({
+  args: {
+    email: v.string(),
+    name: v.string(),
+  },
+  handler: async (ctx, { email, name }) => {
+    // Check if any users exist
+    const existingUsers = await ctx.db.query("users").first();
+    if (existingUsers) {
+      throw new Error("Bootstrap failed: Users already exist. Use the admin interface to create new users.");
+    }
+
+    // Create the first super_admin user
+    const userId = await ctx.db.insert("users", {
+      clerkId: "", // Will be set on first Clerk sign-in
+      email,
+      name,
+      role: "super_admin",
+    });
+
+    return { userId, message: "Super admin created. Sign in with Clerk using this email." };
+  },
+});
+
+/**
+ * Link a Clerk account to an existing user by email.
+ * Called automatically on first sign-in when user exists but clerkId is empty.
+ */
+export const linkClerkAccount = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated");
+    }
+
+    // Check if already linked
+    const existingByClerkId = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+
+    if (existingByClerkId) {
+      return { success: true, message: "Already linked" };
+    }
+
+    // Find user by email
+    if (!identity.email) {
+      throw new Error("No email in Clerk identity");
+    }
+
+    const userByEmail = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", identity.email as string))
+      .unique();
+
+    if (!userByEmail) {
+      throw new Error("No user found with email: " + identity.email);
+    }
+
+    if (userByEmail.clerkId && userByEmail.clerkId !== identity.subject) {
+      throw new Error("Email already linked to another Clerk account");
+    }
+
+    // Link the account
+    await ctx.db.patch(userByEmail._id, { clerkId: identity.subject });
+
+    return { success: true, message: "Account linked successfully" };
+  },
+});
+
 // Internal query for checking super_admin role (used by actions)
 export const verifySuperAdmin = internalQuery({
   args: {},
