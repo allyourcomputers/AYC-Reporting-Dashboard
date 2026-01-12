@@ -153,6 +153,56 @@ export const getAllUsers = query({
   },
 });
 
+// Delete a specific user by email (for migration cleanup)
+export const deleteUserByEmail = mutation({
+  args: { email: v.string() },
+  handler: async (ctx, { email }) => {
+    const user = await ctx.db
+      .query("users")
+      .filter((q) => q.eq(q.field("email"), email))
+      .unique();
+
+    if (!user) {
+      return { success: false, message: `No user found with email: ${email}` };
+    }
+
+    // Delete user's company associations
+    const userCompanies = await ctx.db
+      .query("userCompanies")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .collect();
+    for (const uc of userCompanies) {
+      await ctx.db.delete(uc._id);
+    }
+
+    // Delete user
+    await ctx.db.delete(user._id);
+    return { success: true, message: `Deleted user: ${email}` };
+  },
+});
+
+// Delete all users (keeps companies and other data)
+export const deleteAllUsers = mutation({
+  args: {
+    confirm: v.literal("DELETE_ALL_USERS"),
+  },
+  handler: async (ctx) => {
+    // Delete all user companies
+    const userCompanies = await ctx.db.query("userCompanies").collect();
+    for (const uc of userCompanies) {
+      await ctx.db.delete(uc._id);
+    }
+
+    // Delete all users
+    const users = await ctx.db.query("users").collect();
+    for (const user of users) {
+      await ctx.db.delete(user._id);
+    }
+
+    return { deleted: users.length };
+  },
+});
+
 // Clear all data (use with caution!)
 export const clearAllData = mutation({
   args: {
