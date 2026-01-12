@@ -65,6 +65,16 @@ if [ -z "$VITE_CONVEX_URL" ]; then
     exit 1
 fi
 print_success "Environment variables verified"
+
+# Extract deployment name from VITE_CONVEX_URL and set CONVEX_DEPLOYMENT
+# URL format: https://festive-boar-373.convex.cloud -> festive-boar-373
+DEPLOYMENT_NAME=$(echo "$VITE_CONVEX_URL" | sed -E 's|https://([^.]+)\.convex\.cloud.*|\1|')
+if [ -z "$DEPLOYMENT_NAME" ]; then
+    print_error "Could not extract deployment name from VITE_CONVEX_URL"
+    exit 1
+fi
+export CONVEX_DEPLOYMENT="$DEPLOYMENT_NAME"
+print_success "Convex deployment: $DEPLOYMENT_NAME"
 echo ""
 
 # Check if npx/convex is available for deployment
