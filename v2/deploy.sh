@@ -1,7 +1,7 @@
 #!/bin/bash
 # Deployment script for HaloPSA Reporting Dashboard v2
-# This script updates the application with the latest code from GitHub
-# and rebuilds the Docker container
+# This script updates the application with the latest code from GitHub,
+# deploys Convex functions, and rebuilds the Docker container
 
 set -e  # Exit on any error
 
@@ -53,8 +53,12 @@ if [ ! -f ".env" ]; then
     echo ""
     echo "Required variables:"
     echo "  VITE_CONVEX_URL=https://your-project.convex.cloud"
-    echo "  VITE_CLERK_PUBLISHABLE_KEY=pk_test_xxx"
     echo "  PORT=3200"
+    echo ""
+    echo "Also set these in Convex Dashboard > Settings > Environment Variables:"
+    echo "  AUTH_SECRET        (openssl rand -base64 32)"
+    echo "  JWT_PRIVATE_KEY    (RSA PKCS#8 private key)"
+    echo "  SITE_URL           (your production URL)"
     exit 1
 fi
 print_success ".env file found"
@@ -65,12 +69,17 @@ if [ -z "$VITE_CONVEX_URL" ]; then
     print_error "VITE_CONVEX_URL not set in .env"
     exit 1
 fi
-if [ -z "$VITE_CLERK_PUBLISHABLE_KEY" ]; then
-    print_error "VITE_CLERK_PUBLISHABLE_KEY not set in .env"
-    exit 1
-fi
 print_success "Environment variables verified"
 echo ""
+
+# Check if npx/convex is available for deployment
+if ! command -v npx &> /dev/null; then
+    print_warning "npx not found - will skip Convex function deployment"
+    print_warning "Run 'npx convex deploy' manually to update Convex functions"
+    SKIP_CONVEX_DEPLOY=true
+else
+    SKIP_CONVEX_DEPLOY=false
+fi
 
 print_status "Starting deployment process..."
 echo ""
@@ -113,7 +122,31 @@ else
 fi
 echo ""
 
-# Step 4: Rebuild Docker image
+# Step 4: Deploy Convex functions
+if [ "$SKIP_CONVEX_DEPLOY" = false ]; then
+    print_status "Deploying Convex functions to production..."
+    print_warning "This updates your backend schema and functions..."
+
+    if npx convex deploy --yes; then
+        print_success "Convex functions deployed successfully"
+    else
+        print_error "Failed to deploy Convex functions"
+        print_warning "Check that Convex Auth env vars are set in Convex Dashboard:"
+        echo "  - AUTH_SECRET"
+        echo "  - JWT_PRIVATE_KEY (RSA PKCS#8 format)"
+        echo "  - SITE_URL"
+        echo ""
+        read -p "Continue with Docker deployment anyway? (y/n) " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            print_error "Deployment cancelled."
+            exit 1
+        fi
+    fi
+    echo ""
+fi
+
+# Step 5: Rebuild Docker image
 print_status "Rebuilding Docker image..."
 print_warning "This may take a few minutes..."
 if docker compose build --no-cache; then
@@ -126,7 +159,7 @@ else
 fi
 echo ""
 
-# Step 5: Start the container
+# Step 6: Start the container
 print_status "Starting Docker container..."
 if docker compose up -d; then
     print_success "Container started successfully"
@@ -136,7 +169,7 @@ else
 fi
 echo ""
 
-# Step 6: Wait for container to be healthy
+# Step 7: Wait for container to be healthy
 print_status "Waiting for container to be healthy..."
 CONTAINER_NAME="halo-reporting-v2"
 MAX_ATTEMPTS=30
@@ -163,7 +196,7 @@ while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
 done
 echo ""
 
-# Step 7: Display status
+# Step 8: Display status
 print_status "Deployment Summary:"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 docker compose ps
@@ -195,4 +228,9 @@ echo ""
 print_status "Convex backend:"
 echo "  Dashboard:     https://dashboard.convex.dev"
 echo "  Convex URL:    $VITE_CONVEX_URL"
+echo ""
+print_status "First-time setup (if no users exist):"
+echo "  npx convex run users:bootstrap '{\"email\": \"admin@example.com\", \"name\": \"Admin\", \"password\": \"SecurePassword123\"}'"
+echo ""
+print_warning "Remember: AUTH_SECRET, JWT_PRIVATE_KEY, and SITE_URL must be set in Convex Dashboard!"
 echo ""
