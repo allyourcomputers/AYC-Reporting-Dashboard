@@ -14,15 +14,12 @@ function AccountLinker({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (isSignedIn && !linked && !linking && !error) {
       setLinking(true)
-      console.log("AccountLinker: Attempting to link account...")
       linkAccount()
-        .then((result) => {
-          console.log("AccountLinker: Link successful", result)
+        .then(() => {
           setLinked(true)
           setLinking(false)
         })
         .catch((err) => {
-          console.error("AccountLinker: Link failed", err)
           // If already linked or other non-critical error, continue
           if (err.message?.includes("Already linked")) {
             setLinked(true)
