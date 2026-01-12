@@ -312,6 +312,21 @@ export const clearAllData = mutation({
   },
 });
 
+// Debug: inspect auth accounts
+export const debugAuthAccounts = query({
+  args: {},
+  handler: async (ctx) => {
+    const accounts = await ctx.db.query("authAccounts").collect();
+    // Return accounts without sensitive data
+    return accounts.map((a) => ({
+      _id: a._id,
+      provider: a.provider,
+      providerAccountId: a.providerAccountId,
+      userId: a.userId,
+    }));
+  },
+});
+
 // Clear only auth-related data (for fixing orphaned auth records)
 export const clearAuthData = mutation({
   args: {
