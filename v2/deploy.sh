@@ -74,17 +74,12 @@ if ! command -v npx &> /dev/null; then
     exit 1
 fi
 
-# Check if Convex is authenticated by trying a simple command
-print_status "Verifying Convex CLI authentication..."
-if ! npx convex dashboard --help >/dev/null 2>&1; then
-    print_warning "Convex CLI may need authentication"
-fi
-
-# Check for convex.json to ensure we're in the right directory
-if [ ! -f "convex.json" ] && [ ! -f "../convex.json" ]; then
-    print_error "convex.json not found - are you in the v2 directory?"
+# Check for convex directory to ensure we're in the right location
+if [ ! -d "convex" ]; then
+    print_error "convex directory not found - are you in the v2 directory?"
     exit 1
 fi
+print_success "Convex directory found"
 
 # Function to check if a Convex env var is set
 check_convex_env() {
