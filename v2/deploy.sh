@@ -74,11 +74,35 @@ if ! command -v npx &> /dev/null; then
     exit 1
 fi
 
+# Check if Convex is authenticated by trying a simple command
+print_status "Verifying Convex CLI authentication..."
+if ! npx convex dashboard --help >/dev/null 2>&1; then
+    print_warning "Convex CLI may need authentication"
+fi
+
+# Check for convex.json to ensure we're in the right directory
+if [ ! -f "convex.json" ] && [ ! -f "../convex.json" ]; then
+    print_error "convex.json not found - are you in the v2 directory?"
+    exit 1
+fi
+
 # Function to check if a Convex env var is set
 check_convex_env() {
     local var_name=$1
-    local result=$(npx convex env get "$var_name" 2>/dev/null || echo "")
-    if [ -z "$result" ] || [ "$result" = "undefined" ]; then
+    # Run convex env get and capture output
+    local result
+    result=$(npx convex env get "$var_name" 2>&1)
+    local exit_code=$?
+
+    # Check for errors that indicate authentication issues
+    if [[ "$result" == *"Not logged in"* ]] || [[ "$result" == *"authenticate"* ]]; then
+        print_error "Convex CLI not authenticated"
+        print_warning "Please run: npx convex login"
+        exit 1
+    fi
+
+    # Check if the result indicates the var is not set
+    if [ $exit_code -ne 0 ] || [ -z "$result" ] || [ "$result" = "undefined" ] || [[ "$result" == *"not set"* ]] || [[ "$result" == *"does not exist"* ]] || [[ "$result" == *"No environment variable"* ]]; then
         return 1  # Not set
     fi
     return 0  # Set
@@ -88,7 +112,7 @@ check_convex_env() {
 set_convex_env() {
     local var_name=$1
     local var_value=$2
-    npx convex env set "$var_name" "$var_value" 2>/dev/null
+    npx convex env set "$var_name" "$var_value" 2>&1
 }
 
 # Setup Convex Auth environment variables
