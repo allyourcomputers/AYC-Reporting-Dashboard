@@ -7,6 +7,13 @@ import { ShieldAlert, RefreshCw, CheckCircle2, XCircle, Clock, Users, Ticket, Me
 
 type SyncType = "clients" | "tickets" | "feedback" | "domains";
 
+interface SyncMetadata {
+  lastSync: string;
+  recordsSynced: number;
+  status: "success" | "failed";
+  errorMessage?: string;
+}
+
 interface SyncCardProps {
   title: string;
   description: string;
@@ -14,15 +21,10 @@ interface SyncCardProps {
   icon: React.ReactNode;
   onSync: () => Promise<void>;
   isSyncing: boolean;
-  lastSync: {
-    lastSync: string;
-    recordsSynced: number;
-    status: "success" | "failed";
-    errorMessage?: string;
-  } | null | undefined;
+  lastSyncData: SyncMetadata | null | undefined;
 }
 
-function SyncCard({ title, description, icon, onSync, isSyncing, lastSync }: SyncCardProps) {
+function SyncCard({ title, description, icon, onSync, isSyncing, lastSyncData }: SyncCardProps) {
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
     return date.toLocaleString();
@@ -57,28 +59,28 @@ function SyncCard({ title, description, icon, onSync, isSyncing, lastSync }: Syn
         </Button>
       </CardHeader>
       <CardContent>
-        {lastSync ? (
+        {lastSyncData ? (
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              {lastSync.status === "success" ? (
+              {lastSyncData.status === "success" ? (
                 <CheckCircle2 className="h-4 w-4 text-green-500" />
               ) : (
                 <XCircle className="h-4 w-4 text-red-500" />
               )}
-              <span className={`text-sm font-medium ${lastSync.status === "success" ? "text-green-600" : "text-red-600"}`}>
-                {lastSync.status === "success" ? "Last sync successful" : "Last sync failed"}
+              <span className={`text-sm font-medium ${lastSyncData.status === "success" ? "text-green-600" : "text-red-600"}`}>
+                {lastSyncData.status === "success" ? "Last sync successful" : "Last sync failed"}
               </span>
             </div>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Clock className="h-4 w-4" />
-              <span>{formatDate(lastSync.lastSync)}</span>
+              <span>{formatDate(lastSyncData.lastSync)}</span>
             </div>
             <div className="text-sm text-muted-foreground">
-              Records synced: <span className="font-medium">{lastSync.recordsSynced.toLocaleString()}</span>
+              Records synced: <span className="font-medium">{lastSyncData.recordsSynced.toLocaleString()}</span>
             </div>
-            {lastSync.errorMessage && (
+            {lastSyncData.errorMessage && (
               <div className="text-sm text-red-600 bg-red-50 p-2 rounded">
-                Error: {lastSync.errorMessage}
+                Error: {lastSyncData.errorMessage}
               </div>
             )}
           </div>
@@ -279,7 +281,7 @@ export function AdminSyncPage() {
           icon={<Users className="h-5 w-5 text-blue-500" />}
           onSync={handleSyncClients}
           isSyncing={syncingClients || syncingAll}
-          lastSync={clientsSync}
+          lastSyncData={clientsSync}
         />
 
         <SyncCard
@@ -289,7 +291,7 @@ export function AdminSyncPage() {
           icon={<Ticket className="h-5 w-5 text-orange-500" />}
           onSync={handleSyncTickets}
           isSyncing={syncingTickets || syncingAll}
-          lastSync={ticketsSync}
+          lastSyncData={ticketsSync}
         />
 
         <SyncCard
@@ -299,7 +301,7 @@ export function AdminSyncPage() {
           icon={<MessageSquare className="h-5 w-5 text-green-500" />}
           onSync={handleSyncFeedback}
           isSyncing={syncingFeedback || syncingAll}
-          lastSync={feedbackSync}
+          lastSyncData={feedbackSync}
         />
 
         <SyncCard
@@ -309,7 +311,7 @@ export function AdminSyncPage() {
           icon={<Globe className="h-5 w-5 text-purple-500" />}
           onSync={handleSyncDomains}
           isSyncing={syncingDomains || syncingAll}
-          lastSync={domainsSync}
+          lastSyncData={domainsSync}
         />
       </div>
     </div>
