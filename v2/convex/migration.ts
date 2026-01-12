@@ -6,6 +6,53 @@ import { v } from "convex/values";
  * Note: These mutations are public during migration, remove after migration is complete
  */
 
+// Clean up orphaned auth data (sessions, refresh tokens, and auth accounts for non-existent users)
+export const cleanupOrphanedAuthData = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const stats = {
+      sessions: 0,
+      refreshTokens: 0,
+      authAccounts: 0,
+    };
+
+    // Get all valid user IDs
+    const users = await ctx.db.query("users").collect();
+    const validUserIds = new Set(users.map((u) => u._id));
+
+    // Clean up authSessions for non-existent users
+    const sessions = await ctx.db.query("authSessions").collect();
+    for (const session of sessions) {
+      if (!validUserIds.has(session.userId as any)) {
+        await ctx.db.delete(session._id);
+        stats.sessions++;
+      }
+    }
+
+    // Clean up authRefreshTokens for deleted sessions
+    const remainingSessions = await ctx.db.query("authSessions").collect();
+    const validSessionIds = new Set(remainingSessions.map((s) => s._id));
+    const refreshTokens = await ctx.db.query("authRefreshTokens").collect();
+    for (const token of refreshTokens) {
+      if (!validSessionIds.has(token.sessionId as any)) {
+        await ctx.db.delete(token._id);
+        stats.refreshTokens++;
+      }
+    }
+
+    // Clean up authAccounts for non-existent users
+    const accounts = await ctx.db.query("authAccounts").collect();
+    for (const account of accounts) {
+      if (!validUserIds.has(account.userId as any)) {
+        await ctx.db.delete(account._id);
+        stats.authAccounts++;
+      }
+    }
+
+    return stats;
+  },
+});
+
 // Import a company
 export const importCompany = mutation({
   args: {
@@ -262,5 +309,42 @@ export const clearAllData = mutation({
         syncMetadata: syncMetadata.length,
       },
     };
+  },
+});
+
+// Clear only auth-related data (for fixing orphaned auth records)
+export const clearAuthData = mutation({
+  args: {
+    confirm: v.literal("DELETE_AUTH_DATA"),
+  },
+  handler: async (ctx) => {
+    const stats = {
+      authSessions: 0,
+      authRefreshTokens: 0,
+      authAccounts: 0,
+    };
+
+    // Delete all auth sessions
+    const sessions = await ctx.db.query("authSessions").collect();
+    for (const session of sessions) {
+      await ctx.db.delete(session._id);
+      stats.authSessions++;
+    }
+
+    // Delete all refresh tokens
+    const refreshTokens = await ctx.db.query("authRefreshTokens").collect();
+    for (const token of refreshTokens) {
+      await ctx.db.delete(token._id);
+      stats.authRefreshTokens++;
+    }
+
+    // Delete all auth accounts
+    const accounts = await ctx.db.query("authAccounts").collect();
+    for (const account of accounts) {
+      await ctx.db.delete(account._id);
+      stats.authAccounts++;
+    }
+
+    return stats;
   },
 });
