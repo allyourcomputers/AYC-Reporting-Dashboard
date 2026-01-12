@@ -233,7 +233,7 @@ export const upsertCompanies = internalMutation({
       const existing = await ctx.db
         .query("companies")
         .withIndex("by_halopsa_id", (q) => q.eq("haloPsaClientId", client.haloPsaClientId))
-        .unique();
+        .first();
 
       if (existing) {
         await ctx.db.patch(existing._id, {
@@ -276,11 +276,11 @@ export const upsertTickets = internalMutation({
     let upsertedCount = 0;
 
     for (const ticket of tickets) {
-      // Find the company by HaloPSA client ID
+      // Find the company by HaloPSA client ID (use first() to handle potential duplicates)
       const company = await ctx.db
         .query("companies")
         .withIndex("by_halopsa_id", (q) => q.eq("haloPsaClientId", ticket.haloPsaClientId))
-        .unique();
+        .first();
 
       if (!company) {
         console.log(`Skipping ticket ${ticket.haloPsaId} - company not found for client ${ticket.haloPsaClientId}`);
@@ -614,7 +614,7 @@ export const syncFeedback = action({
           ticketId: ticketId,
           haloPsaTicketId: feedback.ticket_id,
           score: feedback.score,
-          scoreBand: feedback.score_band,
+          scoreBand: feedback.score_band != null ? String(feedback.score_band) : undefined,
           date: feedback.date,
           comment: feedback.comment,
         };
@@ -940,7 +940,7 @@ async function syncFeedbackInternal(ctx: any): Promise<SyncResult> {
         ticketId: ticketId,
         haloPsaTicketId: feedback.ticket_id,
         score: feedback.score,
-        scoreBand: feedback.score_band,
+        scoreBand: feedback.score_band != null ? String(feedback.score_band) : undefined,
         date: feedback.date,
         comment: feedback.comment,
       };
