@@ -271,3 +271,57 @@ export const stopImpersonation = mutation({
     return { success: true };
   },
 });
+
+/**
+ * Set password for an existing user (migrated from Clerk or needs password reset).
+ * Run via CLI: npx convex run users:setPassword '{"email": "user@example.com", "password": "new-password"}'
+ *
+ * This creates Convex Auth credentials for users who don't have them yet.
+ */
+export const setPassword = action({
+  args: {
+    email: v.string(),
+    password: v.string(),
+  },
+  handler: async (ctx, { email, password }) => {
+    // Find the user by email
+    const user = await ctx.runQuery(internal.users.getUserByEmail, { email });
+    if (!user) {
+      throw new Error(`No user found with email: ${email}`);
+    }
+
+    // Create auth credentials for this user
+    try {
+      await createAccount(ctx, {
+        provider: "password",
+        account: { id: email, secret: password },
+        profile: {
+          email,
+          name: user.name,
+          role: user.role,
+        },
+        shouldLinkViaEmail: true,
+      });
+
+      return { success: true, message: `Password set for ${email}. User can now sign in.` };
+    } catch (error: unknown) {
+      // If account already exists, we need to update it differently
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes("already exists") || errorMessage.includes("duplicate")) {
+        throw new Error(`Auth account already exists for ${email}. Use password reset flow instead.`);
+      }
+      throw error;
+    }
+  },
+});
+
+// Internal query to get user by email
+export const getUserByEmail = internalQuery({
+  args: { email: v.string() },
+  handler: async (ctx, { email }) => {
+    return await ctx.db
+      .query("users")
+      .withIndex("email", (q) => q.eq("email", email))
+      .unique();
+  },
+});
